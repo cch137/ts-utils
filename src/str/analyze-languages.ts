@@ -1,5 +1,8 @@
 import concentrate from './concentrate'
 
+// To-Do:
+// 需要判斷數字，因為語句過短，數字過多，可能造成誤判。
+
 const languageCodeRanges: { [languageCode: string]: [number, number][] } = {
   en: [[0x0000, 0x007F]], // Basic Latin (ASCII)
   zh: [[0x4E00, 0x9FFF], [0x3400, 0x4DBF], [0x20000, 0x2A6DF], [0x2A700, 0x2B73F], [0x2B740, 0x2B81F]], // Chinese
