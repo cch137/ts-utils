@@ -8,15 +8,11 @@ const {
   BASE64WEB_CHARSET
 } = baseConverter
 
-class Random extends Function {
+class Random {
   #mt: MersenneTwister
-  __bound: Random
 
   constructor(seed?: any) {
-    super('return this.__bound.random()')
-    this.__bound = this.bind(this)
     this.#mt = MT(seed)
-    return this.__bound
   }
 
   public random() {
