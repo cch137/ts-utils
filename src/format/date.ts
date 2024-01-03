@@ -1,4 +1,4 @@
-import str from '.'
+import str from './str'
 import math from '../math'
 
 export default function (date: Date, format = 'yyyy-MM-dd HH:mm:ss', isUTC = false) {

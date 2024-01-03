@@ -1,6 +1,6 @@
 import random, { Random } from '../random'
 import toSeed from '../random/to-seed'
-import baseConverter from '../str/base-converter'
+import baseConverter from '../format/base-converter'
 
 const randInt = (start: number, end: number) => random.randInt(start, end)
 const { convert, getCharset } = baseConverter

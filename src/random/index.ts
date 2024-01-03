@@ -1,5 +1,5 @@
 import toSeed from './to-seed'
-import baseConverter from '../str/base-converter'
+import baseConverter from '../format/base-converter'
 import MT, { MersenneTwister } from './MersenneTwister'
 
 const {

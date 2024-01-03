@@ -1,7 +1,7 @@
 import sha3 from 'crypto-js/sha3.js'
 import md5 from 'crypto-js/md5.js'
-import str from '../str'
-import baseConverter from '../str/base-converter'
+import str from '../format/str'
+import baseConverter from '../format/base-converter'
 import { mask, unmask } from './masker'
 
 const { textToBase64, base64ToText, secureBase64 } = baseConverter

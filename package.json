@@ -1,9 +1,9 @@
 {
   "name": "@cch137/utils",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "",
-  "main": "index.js",
-  "types": "index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "devbuild": "tsc -w",
     "devstart": "nodemon ./dist/index.js",

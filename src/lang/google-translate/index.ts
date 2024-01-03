@@ -1,6 +1,6 @@
 import qs from 'qs';
 import type { AxiosRequestConfig, AxiosResponse, AxiosInstance } from 'axios';
-import createAxiosSession from '../../web/axios-session';
+import createAxiosSession from '../../crawl/axios-session';
 import languages from './languages';
 
 // Reference from: https://www.npmjs.com/package/@saipulanuar/google-translate-api

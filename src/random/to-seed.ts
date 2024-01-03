@@ -1,6 +1,6 @@
 import sha3 from 'crypto-js/sha3.js'
 import math from '../math'
-import str from '../str'
+import str from '../format/str'
 
 const sha256 = (message: string): string => {
   return sha3(message, { outputLength: 256 }).toString()
