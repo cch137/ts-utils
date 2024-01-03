@@ -1,3 +1,5 @@
+import { Random } from "./random"
+
 const flags = {
   UNDF: 0,
   NULL: 1,
@@ -100,6 +102,18 @@ function BooleansToUint(b: boolean[]) {
   return b.reverse().map((v, i) => BigInt(+v) * bigint2 ** BigInt(i)).reduce((a, b) => a + b, BigInt(0))
 }
 
+function Uint8ArrayToNumbers(array: Uint8Array | (number | bigint)[]) {
+  return [...(array as (number | bigint)[])].map(i => BigInt(i))
+}
+
+function numbersToAscii(array: Uint8Array | (number | bigint)[]) {
+  return btoa(String.fromCharCode.apply(null, Uint8ArrayToNumbers(array).map(i => Number(i))))
+}
+
+function asciiToNumbers(array: string) {
+  return atob(array).split('').map(c => c.charCodeAt(0))
+}
+
 function packNoflagUint(n: number | bigint) {
   const booleans = fillL(UintToBooleans(n, 1), false, 7).reverse(), l = booleans.length; let i = 0
   const sizeData: boolean[] = []
@@ -184,13 +198,13 @@ function packArray(value: any[] | Set<any> | Map<any,any>) {
   const flag = value instanceof Set ? flags.SET : value instanceof Map ? flags.MAP : flags.ARR
   if (flag === flags.MAP) value = [...value.entries()].flat()
   else if (flag === flags.SET) value = [...value]
-  return new Uint8Array([flag, ...(value as any[]).map(v => [...packData(v)]).flat(), flags.END])
+  return new Uint8Array([flag, ...(value as any[]).map(v => [..._packData(v)]).flat(), flags.END])
 }
 
 function unpackArray(bytes: Uint8Array, p = new Pointer()): any[] | Set<any> | Map<any,any> {
   const flag = bytes[p.walk()]
   const arr: any[] = []
-  while (bytes[p.pos] !== flags.END) arr.push(unpackData(bytes, p))
+  while (bytes[p.pos] !== flags.END) arr.push(_unpackData(bytes, p))
   p.walk()
   if (flag === flags.MAP) return new Map(arr.map((v, i, a) => i % 2 === 0 ? [v, a[i + 1]] : undefined).filter(i => i !== undefined) as [any, any][])
   return flag === flags.SET ? new Set(arr) : arr
@@ -198,14 +212,14 @@ function unpackArray(bytes: Uint8Array, p = new Pointer()): any[] | Set<any> | M
 
 function packObject(value: any) {
   if (value instanceof Date) return new Uint8Array([flags.DATE, ...packNoflagUint(value.getTime())])
-  return new Uint8Array([flags.OBJ, ...Object.keys(value).map((k) => [...packData(isNaN(Number(k)) ? k : +k), ...packData(value[k])]).flat(), flags.END])
+  return new Uint8Array([flags.OBJ, ...Object.keys(value).map((k) => [..._packData(isNaN(Number(k)) ? k : +k), ..._packData(value[k])]).flat(), flags.END])
 }
 
 function unpackObject(bytes: Uint8Array, p = new Pointer()): object {
   if (bytes[p.walk()] === flags.DATE) return new Date(Number(unpackNoflagUint(bytes, p)))
   const obj: any = {}
   while (bytes[p.pos] !== flags.END) {
-    const k = unpackData(bytes, p) as string, v = unpackData(bytes, p)
+    const k = _unpackData(bytes, p) as string, v = _unpackData(bytes, p)
     obj[k] = v
   }
   p.walk()
@@ -226,7 +240,7 @@ function unpackBuffer(bytes: Uint8Array, p = new Pointer) {
   return convertUintArray(buffer, bytePerElement * 8 as 8 | 16 | 32)
 }
 
-function packData(value: any): Uint8Array {
+function _packData(value: any): Uint8Array {
   const dataType = typeof value
   switch (dataType) {
     case 'bigint':
@@ -247,7 +261,8 @@ function packData(value: any): Uint8Array {
   throw new Error(`Unsupported Data Type: ${dataType}`)
 }
 
-function unpackData(value: Uint8Array, p = new Pointer()) {
+function _unpackData(value: Uint8Array | number[], p = new Pointer()) {
+  if (!(value instanceof Uint8Array)) return _unpackData(new Uint8Array(value));
   const flag = value[p.pos]
   switch (Math.floor(flag / 32)) {
     case 0: return unpackSpecial(value, p)  // < 32
@@ -260,7 +275,31 @@ function unpackData(value: Uint8Array, p = new Pointer()) {
   }
 }
 
+function packData(data: any, seed?: number) {
+  if (seed === undefined) return _packData(data)
+  const random = new Random(seed)
+  const bytes = Uint8ArrayToNumbers(_packData(data))
+  const shuffledIndexes = random.shuffle([...new Array(bytes.length).fill(0).map((v, i) => i)])
+  const encryptedBytes = shuffledIndexes.map(i => Number(bytes[i]))
+  return new Uint8Array(encryptedBytes)
+}
+
+function unpackData(data: Uint8Array | number[], seed?: number) {
+  if (seed === undefined) return _unpackData(data)
+  const random = new Random(seed)
+  const bytes = Uint8ArrayToNumbers(data)
+  const shuffledIndexes = random.shuffle([...new Array(bytes.length).fill(0).map((v, i) => i)])
+  const decryptedBytes: number[] = new Array(bytes.length).fill(0)
+  bytes.forEach((v, i) => decryptedBytes[shuffledIndexes[i]] = Number(v))
+  return _unpackData(new Uint8Array(decryptedBytes))
+}
+
 export {
+  Pointer,
+  packNoflagUint,
+  unpackNoflagUint,
   packData,
   unpackData,
+  numbersToAscii,
+  asciiToNumbers,
 }
