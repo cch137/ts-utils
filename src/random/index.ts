@@ -28,13 +28,17 @@ class Random {
     return Math.floor(start + this.random() * end)
   }
   
-  public choice(array: any[] | string) {
+  public choice<T>(array: T[]): T[]
+  public choice(array: string): string[]
+  public choice<T>(array: T[] | string) {
     return array[this.randInt(0, array.length)]
   }
   
-  public choices(array: any[] | string, amount = 1) {
-    const result: any[] = []
-    const options: any[] = []
+  public choices<T>(array: T[], amount?: number): T[]
+  public choices(array: string, amount?: number): string[]
+  public choices<T>(array: T[] | string, amount = 1) {
+    const result: (T | string)[] = []
+    const options: (T | string)[] = []
     for (let i = 0; i < amount; i++) {
       if (options.length === 0) {
         options.push(...array)
@@ -44,8 +48,10 @@ class Random {
     return result
   }
   
-  public shuffle(array: any[] | string) {
-    return this.choices(array, array.length)
+  public shuffle<T>(array: T[]): T[]
+  public shuffle(array: string): string[]
+  public shuffle<T>(array: T[] | string) {
+    return this.choices(array as T[] & string, array.length)
   }
   
   public charset(charset: any | string[], len = 8) {
