@@ -102,11 +102,11 @@ function BooleansToUint(b: boolean[]) {
 }
 
 function Uint8ArrayToNumbers(array: Uint8Array | (number | bigint)[]) {
-  return [...(array as (number | bigint)[])].map(i => BigInt(i))
+  return [...(array as (number | bigint)[])].map(i => Number(i))
 }
 
 function numbersToAscii(array: Uint8Array | (number | bigint)[]) {
-  return btoa(String.fromCharCode.apply(null, Uint8ArrayToNumbers(array).map(i => Number(i))))
+  return btoa(String.fromCharCode.apply(null, Uint8ArrayToNumbers(array)))
 }
 
 function asciiToNumbers(array: string) {
@@ -274,23 +274,41 @@ function _unpackData(value: Uint8Array | number[], p = new Pointer()) {
   }
 }
 
-function packData(data: any, seed?: number) {
+function _packDataCrypt(data: any, ...seeds: number[]) {
+  const [seed, ..._seeds] = seeds;
+  if (_seeds.length !== 0) return _packDataCrypt(_packDataCrypt(data, ..._seeds), seed);
   if (seed === undefined) return _packData(data)
   const random = new Random(seed)
   const bytes = Uint8ArrayToNumbers(_packData(data))
   const shuffledIndexes = random.shuffle([...new Array(bytes.length).fill(0).map((v, i) => i)])
-  const encryptedBytes = shuffledIndexes.map(i => Number(bytes[i]))
+  const encryptedBytes = shuffledIndexes.map(i => bytes[i])
   return new Uint8Array(encryptedBytes)
 }
 
-function unpackData(data: Uint8Array | number[], seed?: number) {
+function _unpackDataCrypt(data: Uint8Array | number[], ...seeds: number[]) {
+  const [seed, ..._seeds] = seeds;
+  if (_seeds.length !== 0) return _unpackDataCrypt(_unpackDataCrypt(data, ..._seeds) as Uint8Array, seed);
   if (seed === undefined) return _unpackData(data)
   const random = new Random(seed)
   const bytes = Uint8ArrayToNumbers(data)
   const shuffledIndexes = random.shuffle([...new Array(bytes.length).fill(0).map((v, i) => i)])
   const decryptedBytes: number[] = new Array(bytes.length).fill(0)
-  bytes.forEach((v, i) => decryptedBytes[shuffledIndexes[i]] = Number(v))
+  bytes.forEach((v, i) => decryptedBytes[shuffledIndexes[i]] = v)
   return _unpackData(new Uint8Array(decryptedBytes))
+}
+
+function packData(data: any, seeds: number[]): Uint8Array
+function packData(data: any, ...seeds: number[]): Uint8Array
+function packData(data: any, ...seeds: (number | number[])[]) {
+  if (Array.isArray(seeds[0])) return _packDataCrypt(data, ...seeds[0]);
+  return _packDataCrypt(data, ...(seeds as number[]));
+}
+
+function unpackData(data: Uint8Array | number[], seeds: number[]): Uint8Array
+function unpackData(data: Uint8Array | number[], ...seeds: number[]): Uint8Array
+function unpackData(data: Uint8Array | number[], ...seeds: (number | number[])[]) {
+  if (Array.isArray(seeds[0])) return _unpackDataCrypt(data, ...seeds[0].reverse());
+  return _unpackDataCrypt(data, ...(seeds as number[]).reverse());
 }
 
 export {
