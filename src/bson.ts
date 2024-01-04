@@ -304,8 +304,8 @@ function packData(data: any, ...seeds: (number | number[])[]) {
   return _packDataCrypt(data, ...(seeds as number[]));
 }
 
-function unpackData(data: Uint8Array | number[], seeds: number[]): Uint8Array
-function unpackData(data: Uint8Array | number[], ...seeds: number[]): Uint8Array
+function unpackData(data: Uint8Array | number[], seeds: number[]): string | number | bigint | boolean | object | null | undefined
+function unpackData(data: Uint8Array | number[], ...seeds: number[]): string | number | bigint | boolean | object | null | undefined
 function unpackData(data: Uint8Array | number[], ...seeds: (number | number[])[]) {
   if (Array.isArray(seeds[0])) return _unpackDataCrypt(data, ...seeds[0].reverse());
   return _unpackDataCrypt(data, ...(seeds as number[]).reverse());
