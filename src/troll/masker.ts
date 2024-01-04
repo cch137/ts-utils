@@ -8,7 +8,7 @@ const { convert, getCharset } = baseConverter
 const maskingCharsetGenerator = (_charset: string, randomer: Random = random) => {
   const charset = randomer.shuffle(_charset)
   return () => {
-    charset.push(charset.shift())
+    charset.push(charset.shift() as string)
     return charset
   }
 }
