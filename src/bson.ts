@@ -1,3 +1,4 @@
+import { asciiToNumbers, numbersToAscii } from "./format/binary"
 import { Random } from "./random"
 
 // FLAGS
@@ -33,15 +34,18 @@ const flags_BUF32 = 164
 // END
 const flags_END = 255
 
-class Pointer {
+class BufferPointer {
   pos: number
+
   constructor(value: number | bigint = 0) {
     this.pos = Number(value)
   }
+
   walk(value: number | bigint = 1) {
     const pos = this.pos
     return (this.pos += Number(value), pos)
   }
+
   walked(value: number | bigint = 1) {
     return this.pos += Number(value)
   }
@@ -85,50 +89,38 @@ function fillR<T>(arr: T[], fillValue: T, multiples: number = 8) {
   return arr
 }
 
-function UintToBooleans(n: number | bigint, multiples: number = 8): boolean[] {
+function uintToBooleans(n: number | bigint, multiples: number = 8): boolean[] {
   return fillL([...n.toString(2)].map(i => i === '1'), false, multiples)
 }
 
-function BooleansToUint8Array(b: boolean[]) {
+function booleansToUint(b: boolean[]) {
+  const bigint2 = BigInt(2)
+  return b.reverse().map((v, i) => BigInt(+v) * bigint2 ** BigInt(i)).reduce((a, b) => a + b, BigInt(0))
+}
+
+function booleansToUint8Array(b: boolean[]) {
   b = fillL(b, false)
   const x = new Uint8Array(b.length / 8), l = b.length; let i = 0
   while (i < l) x[i / 8] = parseInt(b.slice(i, i += 8).map(v => v ? '1' : '0').join(''), 2)
   return x
 }
 
-function BooleansToUint(b: boolean[]) {
-  const bigint2 = BigInt(2)
-  return b.reverse().map((v, i) => BigInt(+v) * bigint2 ** BigInt(i)).reduce((a, b) => a + b, BigInt(0))
-}
-
-function Uint8ArrayToNumbers(array: Uint8Array | (number | bigint)[]) {
-  return [...(array as (number | bigint)[])].map(i => Number(i))
-}
-
-function numbersToAscii(array: Uint8Array | (number | bigint)[]) {
-  return btoa(String.fromCharCode.apply(null, Uint8ArrayToNumbers(array)))
-}
-
-function asciiToNumbers(array: string) {
-  return atob(array).split('').map(c => c.charCodeAt(0))
-}
-
 function packNoflagUint(n: number | bigint) {
-  const booleans = fillL(UintToBooleans(n, 1), false, 7).reverse(), l = booleans.length; let i = 0
+  const booleans = fillL(uintToBooleans(n, 1), false, 7).reverse(), l = booleans.length; let i = 0
   const sizeData: boolean[] = []
   while (i < l) sizeData.unshift(true, ...booleans.slice(i, i += 7))
   sizeData[sizeData.length - 8] = false
-  return BooleansToUint8Array(sizeData)
+  return booleansToUint8Array(sizeData)
 }
 
-function unpackNoflagUint(bytes: Uint8Array | number[], p = new Pointer()) {
+function unpackNoflagUint(bytes: Uint8Array | number[], p = new BufferPointer()) {
   const chunks: boolean[] = []
   while (p.pos < bytes.length) {
-    const [next, ...chunk] = UintToBooleans(bytes[p.walk()])
+    const [next, ...chunk] = uintToBooleans(bytes[p.walk()])
     chunks.push(...chunk.reverse())
     if (!next) break
   }
-  return BooleansToUint(chunks)
+  return booleansToUint(chunks)
 }
 
 function packNumber(n: number | bigint) {
@@ -139,11 +131,11 @@ function packNumber(n: number | bigint) {
   const negative = n < 0; if (negative) n = -n
   const flag = (typeof n === 'bigint' ? flags_BIGINT : Number.isInteger(n) ? flags_INT : flags_FLOAT) + (negative ? 1 : 0)
   if (flag < flags_FLOAT) return new Uint8Array([flag, ...packNoflagUint(n)])
-  const decimalUint = BooleansToUint(fillR([...(n as number % 1).toString(2).substring(2)].map(i => i === '1'), false))
+  const decimalUint = booleansToUint(fillR([...(n as number % 1).toString(2).substring(2)].map(i => i === '1'), false))
   return new Uint8Array([flag, ...packNoflagUint(Math.floor(n as number)), ...packNoflagUint(decimalUint)])
 }
 
-function unpackNumber(bytes: Uint8Array | number[], p = new Pointer()) {
+function unpackNumber(bytes: Uint8Array | number[], p = new BufferPointer()) {
   const flag = bytes[p.walk()]
   switch (flag) {
     case flags_ZERO: return 0
@@ -161,7 +153,7 @@ function unpackNumber(bytes: Uint8Array | number[], p = new Pointer()) {
   const isInt = flag === flags_INT || flag === flags_INT_
   if (isInt) return sign * Number(intValue)
   const floatValue = Number(unpackNoflagUint(bytes, p))
-  const floatBooleans = UintToBooleans(floatValue)
+  const floatBooleans = uintToBooleans(floatValue)
   return sign * (Number(intValue) + (floatValue / 2 ** floatBooleans.length))
 }
 
@@ -170,7 +162,7 @@ function packString(s: string) {
   return new Uint8Array([flags_STR, ...packNoflagUint(uint8Array.length), ...uint8Array])
 }
 
-function unpackString(bytes: Uint8Array, p = new Pointer()) {
+function unpackString(bytes: Uint8Array, p = new BufferPointer()) {
   const stringLength = (p.walk(), unpackNoflagUint(bytes, p))
   return new TextDecoder().decode(bytes.slice(p.pos, p.walked(stringLength)))
 }
@@ -184,7 +176,7 @@ function packSpecial(b: boolean | null | undefined) {
   }
 }
 
-function unpackSpecial(bytes: Uint8Array | number[], p = new Pointer()) {
+function unpackSpecial(bytes: Uint8Array | number[], p = new BufferPointer()) {
   switch (bytes[p.walk()]) {
     case flags_TRUE: return true
     case flags_FALSE: return false
@@ -200,7 +192,7 @@ function packArray(value: any[] | Set<any> | Map<any,any>) {
   return new Uint8Array([flag, ...(value as any[]).map(v => [..._packData(v)]).flat(), flags_END])
 }
 
-function unpackArray(bytes: Uint8Array, p = new Pointer()): any[] | Set<any> | Map<any,any> {
+function unpackArray(bytes: Uint8Array, p = new BufferPointer()): any[] | Set<any> | Map<any,any> {
   const flag = bytes[p.walk()]
   const arr: any[] = []
   while (bytes[p.pos] !== flags_END) arr.push(_unpackData(bytes, p))
@@ -214,7 +206,7 @@ function packObject(value: any) {
   return new Uint8Array([flags_OBJ, ...Object.keys(value).map((k) => [..._packData(isNaN(Number(k)) ? k : +k), ..._packData(value[k])]).flat(), flags_END])
 }
 
-function unpackObject(bytes: Uint8Array, p = new Pointer()): object {
+function unpackObject(bytes: Uint8Array, p = new BufferPointer()): object {
   if (bytes[p.walk()] === flags_DATE) return new Date(Number(unpackNoflagUint(bytes, p)))
   const obj: any = {}
   while (bytes[p.pos] !== flags_END) {
@@ -231,7 +223,7 @@ function packBuffer(bytes: Uint8Array | Uint16Array | Uint32Array) {
   return new Uint8Array([flag, ...packNoflagUint(bytes.length), ...(bytePerElement === 1 ? bytes : convertUintArray(bytes, 8))])
 }
 
-function unpackBuffer(bytes: Uint8Array, p = new Pointer) {
+function unpackBuffer(bytes: Uint8Array, p = new BufferPointer) {
   const flag = bytes[p.walk()]
   const bytePerElement = [0, flags_BUF8, flags_BUF16, 0, flags_BUF32].indexOf(flag)
   const bufferLength = unpackNoflagUint(bytes, p) * BigInt(bytePerElement)
@@ -260,7 +252,7 @@ function _packData(value: any): Uint8Array {
   throw new Error(`Unsupported Data Type: ${dataType}`)
 }
 
-function _unpackData(value: Uint8Array | number[], p = new Pointer()) {
+function _unpackData(value: Uint8Array | number[], p = new BufferPointer()) {
   if (!(value instanceof Uint8Array)) return _unpackData(new Uint8Array(value));
   const flag = value[p.pos]
   switch (Math.floor(flag / 32)) {
@@ -274,49 +266,48 @@ function _unpackData(value: Uint8Array | number[], p = new Pointer()) {
   }
 }
 
-function _packDataCrypt(data: any, ...seeds: number[]) {
-  const [seed, ..._seeds] = seeds;
-  if (_seeds.length !== 0) return _packDataCrypt(_packDataCrypt(data, ..._seeds), seed);
-  if (seed === undefined) return _packData(data)
-  const random = new Random(seed)
-  const bytes = Uint8ArrayToNumbers(_packData(data))
-  const shuffledIndexes = random.shuffle([...new Array(bytes.length).fill(0).map((v, i) => i)])
-  const encryptedBytes = shuffledIndexes.map(i => bytes[i])
-  return new Uint8Array(encryptedBytes)
+function encryptBuffer(array: Uint8Array | number[], ...salts: number[]) {
+  if (salts.length > 1) return encryptBuffer(encryptBuffer(array, salts[0]), ...salts.slice(1))
+  if (salts.length === 0) return array instanceof Uint8Array ? array : new Uint8Array(array)
+  const shuffledIndexes = new Random(salts[0]).shuffle(new Array(array.length).fill(0).map((v, i) => i))
+  return new Uint8Array(array.length).map((v, i) => array[shuffledIndexes[i]])
 }
 
-function _unpackDataCrypt(data: Uint8Array | number[], ...seeds: number[]) {
-  const [seed, ..._seeds] = seeds;
-  if (_seeds.length !== 0) return _unpackDataCrypt(_unpackDataCrypt(data, ..._seeds) as Uint8Array, seed);
-  if (seed === undefined) return _unpackData(data)
-  const random = new Random(seed)
-  const bytes = Uint8ArrayToNumbers(data)
-  const shuffledIndexes = random.shuffle([...new Array(bytes.length).fill(0).map((v, i) => i)])
-  const decryptedBytes: number[] = new Array(bytes.length).fill(0)
-  bytes.forEach((v, i) => decryptedBytes[shuffledIndexes[i]] = v)
-  return _unpackData(new Uint8Array(decryptedBytes))
+function decryptBuffer(array: Uint8Array | number[], ...salts: number[]) {
+  if (salts.length > 1) return decryptBuffer(decryptBuffer(array, ...salts.slice(1)), salts[0])
+  if (salts.length === 0) return array instanceof Uint8Array ? array : new Uint8Array(array)
+  const shuffledIndexes = new Random(salts[0]).shuffle(new Array(array.length).fill(0).map((v, i) => i))
+  const buffer = new Uint8Array(array.length)
+  array.forEach((v, i) => buffer[shuffledIndexes[i]] = v)
+  return buffer
 }
 
-function packData(data: any, seeds: number[]): Uint8Array
-function packData(data: any, ...seeds: number[]): Uint8Array
-function packData(data: any, ...seeds: (number | number[])[]) {
-  if (Array.isArray(seeds[0])) return _packDataCrypt(data, ...seeds[0]);
-  return _packDataCrypt(data, ...(seeds as number[]));
+class BSONUint8Array extends Uint8Array {
+  toString(): string {
+    return numbersToAscii(this)
+  }
 }
 
-function unpackData(data: Uint8Array | number[], seeds: number[]): string | number | bigint | boolean | object | null | undefined
-function unpackData(data: Uint8Array | number[], ...seeds: number[]): string | number | bigint | boolean | object | null | undefined
-function unpackData(data: Uint8Array | number[], ...seeds: (number | number[])[]) {
-  if (Array.isArray(seeds[0])) return _unpackDataCrypt(data, ...seeds[0].reverse());
-  return _unpackDataCrypt(data, ...(seeds as number[]).reverse());
+function packData(data: any, salts: number[]): BSONUint8Array
+function packData(data: any, ...salts: number[]): BSONUint8Array
+function packData(data: any, ...salts: (number | number[])[]) {
+  const _salts = Array.isArray(salts[0]) ? salts[0] : salts as number[]
+  return new BSONUint8Array(encryptBuffer(_packData(data), ..._salts))
+}
+
+function unpackData(array: BSONUint8Array | Uint8Array | number[] | string, salts: number[]): any
+function unpackData(array: BSONUint8Array | Uint8Array | number[] | string, ...salts: number[]): any
+function unpackData(array: BSONUint8Array | Uint8Array | number[] | string, ...salts: (number | number[])[]) {
+  const _salts = Array.isArray(salts[0]) ? salts[0] : salts as number[]
+  return _unpackData(decryptBuffer(typeof array === 'string' ? asciiToNumbers(array) : array, ..._salts))
 }
 
 export {
-  Pointer,
+  BSONUint8Array,
   packNoflagUint,
   unpackNoflagUint,
+  encryptBuffer,
+  decryptBuffer,
   packData,
   unpackData,
-  numbersToAscii,
-  asciiToNumbers,
 }
