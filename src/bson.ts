@@ -283,7 +283,7 @@ function encryptBuffer(array: Uint8Array | number[], ...salts: number[]) {
   if (salts.length > 1) return encryptBuffer(encryptBuffer(array, salts[0]), ...salts.slice(1))
   if (salts.length === 0) return array instanceof Uint8Array ? array : new Uint8Array(array)
   const shuffledIndexes = new Random(salts[0]).shuffle(new Array(array.length).fill(0).map((v, i) => i))
-  return new Uint8Array(array.length).map((v, i) => array[shuffledIndexes[i]])
+  return new Uint8Array(array.length).map((v, i) => array[shuffledIndexes[i]]).map((v) => (v >> 1) | ((v & 1) << 7))
 }
 
 function decryptBuffer(array: Uint8Array | number[], ...salts: number[]) {
@@ -291,7 +291,7 @@ function decryptBuffer(array: Uint8Array | number[], ...salts: number[]) {
   if (salts.length === 0) return array instanceof Uint8Array ? array : new Uint8Array(array)
   const shuffledIndexes = new Random(salts[0]).shuffle(new Array(array.length).fill(0).map((v, i) => i))
   const buffer = new Uint8Array(array.length)
-  array.forEach((v, i) => buffer[shuffledIndexes[i]] = v)
+  array.map((v) => ((v << 1) & 0xFF) | ((v & 0x80) >> 7)).forEach((v, i) => buffer[shuffledIndexes[i]] = v)
   return buffer
 }
 
