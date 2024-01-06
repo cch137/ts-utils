@@ -331,7 +331,7 @@ class BSON<T> extends Uint8Array {
     return unpackData(this, ...salts.flat(1))
   }
 
-  get base64(): string {
+  toBase64(): string {
     return numbersToAscii(this)
   }
 }
