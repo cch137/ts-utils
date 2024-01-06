@@ -20,6 +20,8 @@ const flags_NAN = 54
 const flags_ZERO = 55
 // STRINGS
 const flags_STR = 64
+const flags_STR_NUMR = 66
+const flags_STR_NUMR_ = 67
 // ITERABLES
 const flags_ARR = 96
 const flags_SET = 98
@@ -135,8 +137,9 @@ function packNumber(n: number | bigint) {
   return new Uint8Array([flag, ...packNoflagUint(Math.floor(n as number)), ...packNoflagUint(decimalUint)])
 }
 
-function unpackNumber(bytes: Uint8Array | number[], p = new BufferPointer()) {
-  const flag = bytes[p.walk()]
+function unpackNumber(bytes: Uint8Array | number[], p = new BufferPointer(), customFlag?: number) {
+  // if customFlag is given, p does not walk
+  const flag = customFlag || bytes[p.walk()]
   switch (flag) {
     case flags_ZERO: return 0
     case flags_NAN: return NaN
@@ -158,13 +161,23 @@ function unpackNumber(bytes: Uint8Array | number[], p = new BufferPointer()) {
 }
 
 function packString(s: string) {
-  const uint8Array = new TextEncoder().encode(s)
-  return new Uint8Array([flags_STR, ...packNoflagUint(uint8Array.length), ...uint8Array])
+  if (!Number.isNaN(+s) && +s % 1 === 0) {
+    const n = BigInt(s)
+    if (n.toString() === s) return new Uint8Array([s.startsWith('-') ? flags_STR_NUMR_ : flags_STR_NUMR, ...packNumber(n).slice(1)])
+  }
+  const array = new TextEncoder().encode(s)
+  return new Uint8Array([flags_STR, ...packNoflagUint(array.length), ...array])
 }
 
 function unpackString(bytes: Uint8Array, p = new BufferPointer()) {
-  const stringLength = (p.walk(), unpackNoflagUint(bytes, p))
-  return new TextDecoder().decode(bytes.slice(p.pos, p.walked(stringLength)))
+  const flag = bytes[p.walk()]
+  switch (flag) {
+    case flags_STR_NUMR: return unpackNumber(bytes, p, flags_BIGINT).toString()
+    case flags_STR_NUMR_: return unpackNumber(bytes, p, flags_BIGINT_).toString()
+    default:
+      const stringLength = unpackNoflagUint(bytes, p)
+      return new TextDecoder().decode(bytes.slice(p.pos, p.walked(stringLength)))
+  }
 }
 
 function packSpecial(b: boolean | null | undefined) {
@@ -282,32 +295,55 @@ function decryptBuffer(array: Uint8Array | number[], ...salts: number[]) {
   return buffer
 }
 
-class BSONUint8Array extends Uint8Array {
-  toString(): string {
+function packData<T>(data: T, salts: number[]): BSON<T>
+function packData<T>(data: T, ...salts: number[]): BSON<T>
+function packData<T>(data: T, ...salts: (number | number[])[]) {
+  return new BSON(encryptBuffer(_packData(data), ...salts.flat(1)))
+}
+
+function unpackData<T>(array: BSON<T> | Uint8Array | number[] | string, salts: number[]): T
+function unpackData<T>(array: BSON<T> | Uint8Array | number[] | string, ...salts: number[]): T
+function unpackData<T>(array: BSON<T> | Uint8Array | number[] | string, ...salts: (number | number[])[]) {
+  return _unpackData(decryptBuffer(typeof array === 'string' ? asciiToNumbers(array) : array, ...salts.flat(1)))
+}
+
+class BSON<T> extends Uint8Array {
+  static pack<T>(data: T, salts: number[]): BSON<T>
+  static pack<T>(data: T, ...salts: number[]): BSON<T>
+  static pack<T>(data: T, ...salts: (number | number[])[]) {
+    return packData(data, ...salts.flat(1))
+  }
+
+  static unpack<T>(data: BSON<T> | Uint8Array | number[] | string, salts: number[]): T
+  static unpack<T>(data: BSON<T> | Uint8Array | number[] | string, ...salts: number[]): T
+  static unpack<T>(data: BSON<T> | Uint8Array | number[] | string, ...salts: (number | number[])[]) {
+    return unpackData(data, ...salts.flat(1))
+  }
+
+  static packUint = packNoflagUint
+  static unpackUint = unpackNoflagUint
+  static decrypt = decryptBuffer
+  static encrypt = encryptBuffer
+
+  unpack(salts: number[]): T
+  unpack(...salts: number[]): T
+  unpack(...salts: (number | number[])[]) {
+    return unpackData(this, ...salts.flat(1))
+  }
+
+  get base64(): string {
     return numbersToAscii(this)
   }
 }
 
-function packData(data: any, salts: number[]): BSONUint8Array
-function packData(data: any, ...salts: number[]): BSONUint8Array
-function packData(data: any, ...salts: (number | number[])[]) {
-  const _salts = Array.isArray(salts[0]) ? salts[0] : salts as number[]
-  return new BSONUint8Array(encryptBuffer(_packData(data), ..._salts))
-}
-
-function unpackData(array: BSONUint8Array | Uint8Array | number[] | string, salts: number[]): any
-function unpackData(array: BSONUint8Array | Uint8Array | number[] | string, ...salts: number[]): any
-function unpackData(array: BSONUint8Array | Uint8Array | number[] | string, ...salts: (number | number[])[]) {
-  const _salts = Array.isArray(salts[0]) ? salts[0] : salts as number[]
-  return _unpackData(decryptBuffer(typeof array === 'string' ? asciiToNumbers(array) : array, ..._salts))
-}
+export default BSON
 
 export {
-  BSONUint8Array,
+  BSON,
+  packData,
+  unpackData,
   packNoflagUint,
   unpackNoflagUint,
   encryptBuffer,
   decryptBuffer,
-  packData,
-  unpackData,
 }

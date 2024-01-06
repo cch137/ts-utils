@@ -3,11 +3,11 @@ function uint8ArrayToNumbers(array: Uint8Array | (number | bigint)[]) {
 }
 
 function numbersToAscii(array: Uint8Array | (number | bigint)[]) {
-  return btoa(String.fromCharCode.apply(null, uint8ArrayToNumbers(array)))
+  return btoa(String.fromCharCode.apply(null, uint8ArrayToNumbers(array))).replace(/[=]+/, '')
 }
 
 function asciiToNumbers(array: string) {
-  return atob(array).split('').map(c => c.charCodeAt(0))
+  return Array.from(atob(array)).map(c => c.charCodeAt(0))
 }
 
 export {
