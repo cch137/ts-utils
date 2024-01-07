@@ -1,11 +1,14 @@
 async function test() {
-  const { BSON } = await import('./bson');
+  const { Shuttle } = await import('./shuttle');
 
-  const seeds = [27414124, 71264714, 927412940, 454275798]
+  const salts = [27414124977, 71264714, 927412940, 45427579829]
   const data0 = { uid: '48374801248067' }
-  const data1 = BSON.pack(data0, [...seeds, 888])
-  const data2 = data1.unpack([...seeds, 888])
-
+  console.time('pack')
+  const data1 = Shuttle.pack(data0, [...salts, ...salts, ...salts, ...salts])
+  console.timeEnd('pack')
+  console.time('unpack')
+  const data2 = data1.unpack([...salts, ...salts, ...salts, ...salts])
+  console.timeEnd('unpack')
   console.log(data1.toBase64())
   console.log(data2)
 }

@@ -279,11 +279,37 @@ function _unpackData(value: Uint8Array | number[], p = new BufferPointer()) {
   }
 }
 
+function arrayLeftShift(array: Uint8Array) {
+  const firstBit = array[0] & 0x80;
+  return array.map((value, index) => {
+    if (index === array.length - 1) {
+      value <<= 1;
+      value |= (firstBit >> 7);
+    } else {
+      value = (value << 1) | ((array[index + 1] & 0x80) >> 7);
+    }
+    return value;
+  });
+}
+
+function arrayRightShift(array: Uint8Array) {
+  const lastBit = array[array.length - 1] & 0x01;
+  return array.map((value, index) => {
+    if (index === 0) {
+      value >>= 1;
+      value |= (lastBit << 7);
+    } else {
+      value = (value >> 1) | ((array[index - 1] & 0x01) << 7);
+    }
+    return value;
+  });
+}
+
 function encryptBuffer(array: Uint8Array | number[], ...salts: number[]) {
   if (salts.length > 1) return encryptBuffer(encryptBuffer(array, salts[0]), ...salts.slice(1))
   if (salts.length === 0) return array instanceof Uint8Array ? array : new Uint8Array(array)
   const shuffledIndexes = new Random(salts[0]).shuffle(new Array(array.length).fill(0).map((v, i) => i))
-  return new Uint8Array(array.length).map((v, i) => array[shuffledIndexes[i]]).map((v) => (v >> 1) | ((v & 1) << 7))
+  return arrayRightShift(new Uint8Array(array.length).map((v, i) => array[shuffledIndexes[i]]))
 }
 
 function decryptBuffer(array: Uint8Array | number[], ...salts: number[]) {
@@ -291,32 +317,36 @@ function decryptBuffer(array: Uint8Array | number[], ...salts: number[]) {
   if (salts.length === 0) return array instanceof Uint8Array ? array : new Uint8Array(array)
   const shuffledIndexes = new Random(salts[0]).shuffle(new Array(array.length).fill(0).map((v, i) => i))
   const buffer = new Uint8Array(array.length)
-  array.map((v) => ((v << 1) & 0xFF) | ((v & 0x80) >> 7)).forEach((v, i) => buffer[shuffledIndexes[i]] = v)
+  arrayLeftShift(array instanceof Uint8Array ? array : new Uint8Array(array)).forEach((v, i) => buffer[shuffledIndexes[i]] = v)
   return buffer
 }
 
-function packData<T>(data: T, salts: number[]): BSON<T>
-function packData<T>(data: T, ...salts: number[]): BSON<T>
+function packData<T>(data: T, salts: number[]): Shuttle<T>
+function packData<T>(data: T, ...salts: number[]): Shuttle<T>
 function packData<T>(data: T, ...salts: (number | number[])[]) {
-  return new BSON(encryptBuffer(_packData(data), ...salts.flat(1)))
+  return new Shuttle(encryptBuffer(_packData(data), ...salts.flat(1)))
 }
 
-function unpackData<T>(array: BSON<T> | Uint8Array | number[] | string, salts: number[]): T
-function unpackData<T>(array: BSON<T> | Uint8Array | number[] | string, ...salts: number[]): T
-function unpackData<T>(array: BSON<T> | Uint8Array | number[] | string, ...salts: (number | number[])[]) {
+function unpackData<T>(array: Shuttle<T> | Uint8Array | number[] | string, salts: number[]): T
+function unpackData<T>(array: Shuttle<T> | Uint8Array | number[] | string, ...salts: number[]): T
+function unpackData<T>(array: Shuttle<T> | Uint8Array | number[] | string, ...salts: (number | number[])[]) {
   return _unpackData(decryptBuffer(typeof array === 'string' ? asciiToNumbers(array) : array, ...salts.flat(1)))
 }
 
-class BSON<T> extends Uint8Array {
-  static pack<T>(data: T, salts: number[]): BSON<T>
-  static pack<T>(data: T, ...salts: number[]): BSON<T>
+class Shuttle<T> extends Uint8Array {
+  static load<T>(data: Shuttle<T> | Uint8Array | number[] | string) {
+    return new Shuttle<T>(typeof data === 'string' ? asciiToNumbers(data) : data);
+  }
+
+  static pack<T>(data: T, salts: number[]): Shuttle<T>
+  static pack<T>(data: T, ...salts: number[]): Shuttle<T>
   static pack<T>(data: T, ...salts: (number | number[])[]) {
     return packData(data, ...salts.flat(1))
   }
 
-  static unpack<T>(data: BSON<T> | Uint8Array | number[] | string, salts: number[]): T
-  static unpack<T>(data: BSON<T> | Uint8Array | number[] | string, ...salts: number[]): T
-  static unpack<T>(data: BSON<T> | Uint8Array | number[] | string, ...salts: (number | number[])[]) {
+  static unpack<T>(data: Shuttle<T> | Uint8Array | number[] | string, salts: number[]): T
+  static unpack<T>(data: Shuttle<T> | Uint8Array | number[] | string, ...salts: number[]): T
+  static unpack<T>(data: Shuttle<T> | Uint8Array | number[] | string, ...salts: (number | number[])[]) {
     return unpackData(data, ...salts.flat(1))
   }
 
@@ -336,10 +366,10 @@ class BSON<T> extends Uint8Array {
   }
 }
 
-export default BSON
+export default Shuttle
 
 export {
-  BSON,
+  Shuttle,
   packData,
   unpackData,
   packNoflagUint,
