@@ -1,5 +1,4 @@
-const defaultFrequencyMs = 60 * 1000
-const defaultLimit = 5
+const checkExpireFrequencyMs = 60000
 
 function _formatTime(timeMs: number): string {
   if (timeMs < 1000) {
@@ -16,97 +15,92 @@ function _formatTime(timeMs: number): string {
   }
 }
 
-class RateLimiterBundler extends Set<RateLimiter> {
-  constructor (limiters: RateLimiter[] = []) {
-    super(limiters)
+class RateLimiterUser extends Array {
+  constructor() {
+    super()
   }
 
-  #getLimiterFailedAt (ip: string) {
-    return [...this].find((limiter) => !limiter._noRecordCheck(ip))
+  log(weight = 1) {
+    this.push(...new Array(weight).fill(Date.now()))
   }
 
-  getHint (ip: string) {
-    return this.#getLimiterFailedAt(ip)?.hint || ''
+  expire(timestamp: number) {
+    this.splice(0, this.before(timestamp))
   }
 
-  check (ip: string, weight = 1) {
-    return [...this].map((limiter) => limiter.check(ip, weight))
-      .filter(i => !i).length === 0
+  before(timestamp: number) {
+    let i = 0
+    const { length } = this
+    for (;i < length; i++) if (this[i] > timestamp) return i;
+    return i
+  }
+
+  after(timestamp: number) {
+    const { length } = this
+    let i = length - 1
+    for (;i > -1; i--) if (this[i] <= timestamp) return length - 1 - i;
+    return length
   }
 }
 
-class RateLimiter extends Map<string, number> {
-  #nextUpdateAt = 0
-  #updateTimeout?: NodeJS.Timeout
-  #frequencyMs = defaultFrequencyMs
-  limit = defaultLimit
+type RateLimiterRule = {
+  timeMs: number
+  maxCount: number
+}
 
-  static bundle (limiters: RateLimiter[] = []) {
-    return new RateLimiterBundler(limiters)
-  }
+type RateLimiterResponse = {
+  success: true
+} | {
+  success: false
+  message: string
+}
 
-  /** set frequencyMs will clear the record */
-  set frequencyMs (value: number) {
-    const oldValue = this.#frequencyMs
-    this.#frequencyMs = value
-    if (oldValue !== value) {
-      this.#run()
-    }
-  }
+class RateLimiter extends Map<string, RateLimiterUser> {
+  rules: RateLimiterRule[]
+  #lastUpdated: number = 0
 
-  get frequencyMs () {
-    return this.#frequencyMs
-  }
-
-  /** Readonly */
-  get frequencySec () {
-    return Math.round(this.#frequencyMs / 1000)
-  }
-
-  /** Readonly */
-  get frequencyMin () {
-    return Math.round(this.#frequencyMs / 1000 / 60)
-  }
-
-  get nextUpdateAt (): number {
-    return this.#nextUpdateAt
-  }
-
-  get updateCountdown (): number {
-    return this.#nextUpdateAt - Date.now()
-  }
-
-  get hint (): string {
-    return `You have tried too many times. Please try again after ${_formatTime(this.updateCountdown)}.`
-  }
-
-  get total () {
-    return [...this.values()].reduce((sum, num) => sum + num, 0)
-  }
-
-  constructor (limit = defaultLimit, frequencyMs = defaultFrequencyMs) {
+  constructor(rules: RateLimiterRule[] = []) {
     super()
-    this.limit = limit
-    this.frequencyMs = frequencyMs
-    this.#run()
+    this.rules = rules
   }
 
-  #run () {
-    clearTimeout(this.#updateTimeout)
-    this.clear()
-    this.#updateTimeout = setTimeout(() => this.#run(), this.#frequencyMs)
-    this.#nextUpdateAt = Date.now() + this.#frequencyMs
+  get maxRuleTimeMs() {
+    return Math.max(0, ...this.rules.map((r) => r.timeMs))
   }
 
-  check (ip: string, weight = 1) {
-    const times = this.get(ip) || 0
-    this.set(ip, times + weight)
-    return times < this.limit
+  user(name: string): RateLimiterUser {
+    if (!this.has(name)) this.set(name, new RateLimiterUser())
+    return this.get(name) as RateLimiterUser
   }
 
-  _noRecordCheck (ip: string) {
-    const times = this.get(ip) || 0
-    return times < this.limit
+  log(name: string, weight = 1) {
+    this.user(name).log(weight)
+  }
+
+  check(name: string): RateLimiterResponse {
+    if (!this.has(name)) return { success: true }
+    const user = this.user(name)
+    const now = Date.now()
+    if (this.#lastUpdated + checkExpireFrequencyMs < now) {
+      this.#lastUpdated = now
+      this.expire(this.maxRuleTimeMs)
+    }
+    for (const rule of this.rules) {
+      if (user.after(now - rule.timeMs) > rule.maxCount) {
+        return {
+          success: false,
+          message: `This service is rate limited, please try again after ${_formatTime(rule.timeMs)}.`
+        }
+      }
+    }
+    return { success: true }
+  }
+
+  expire(timestamp: number) {
+    [...this].forEach(([name, user]) => {
+      user.expire(timestamp)
+      if (user.length === 0) this.delete(name)
+    })
   }
 }
 
