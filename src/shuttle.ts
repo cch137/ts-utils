@@ -29,6 +29,7 @@ const flags_MAP = 100
 // OBJECTS
 const flags_OBJ = 128
 const flags_DATE = 130
+const flags_DATE_ = 131
 // BUFFERS
 const flags_BUF8 = 160
 const flags_BUF16 = 162
@@ -145,7 +146,6 @@ function unpackNumber(bytes: Uint8Array | number[], p = new BufferPointer(), cus
     case flags_NAN: return NaN
     case flags_INFI: return Infinity
     case flags_INFI_: return -Infinity
-    case flags_DATE: return new Date(Number(unpackNoflagUint(bytes, p)))
     case flags_INT: case flags_INT_: case flags_FLOAT: case flags_FLOAT_: case flags_BIGINT: case flags_BIGINT_: break
     default: throwInvalidFlag(flag)
   }
@@ -215,12 +215,18 @@ function unpackArray(bytes: Uint8Array, p = new BufferPointer()): any[] | Set<an
 }
 
 function packObject(value: any) {
-  if (value instanceof Date) return new Uint8Array([flags_DATE, ...packNoflagUint(value.getTime())])
+  if (value instanceof Date) {
+    const t = value.getTime()
+    return new Uint8Array([t < 0 ? flags_DATE_ : flags_DATE, ...packNoflagUint(Math.abs(t))])
+  }
   return new Uint8Array([flags_OBJ, ...Object.keys(value).map((k) => [..._packData(isNaN(Number(k)) ? k : +k), ..._packData(value[k])]).flat(), flags_END])
 }
 
 function unpackObject(bytes: Uint8Array, p = new BufferPointer()): object {
-  if (bytes[p.walk()] === flags_DATE) return new Date(Number(unpackNoflagUint(bytes, p)))
+  switch (bytes[p.walk()]) {
+    case flags_DATE: return new Date(Number(unpackNoflagUint(bytes, p)))
+    case flags_DATE_: return new Date(-Number(unpackNoflagUint(bytes, p)))
+  }
   const obj: any = {}
   while (bytes[p.pos] !== flags_END) {
     const k = _unpackData(bytes, p) as string, v = _unpackData(bytes, p)
@@ -266,7 +272,7 @@ function _packData(value: any): Uint8Array {
 }
 
 function _unpackData(value: Uint8Array | number[], p = new BufferPointer()) {
-  if (!(value instanceof Uint8Array)) return _unpackData(new Uint8Array(value));
+  if (!(value instanceof Uint8Array)) return _unpackData(new Uint8Array(value))
   const flag = value[p.pos]
   switch (Math.floor(flag / 32)) {
     case 0: return unpackSpecial(value, p)  // < 32
@@ -280,29 +286,29 @@ function _unpackData(value: Uint8Array | number[], p = new BufferPointer()) {
 }
 
 function arrayLeftShift(array: Uint8Array) {
-  const firstBit = array[0] & 0x80;
+  const firstBit = array[0] & 0x80
   return array.map((value, index) => {
     if (index === array.length - 1) {
-      value <<= 1;
-      value |= (firstBit >> 7);
+      value <<= 1
+      value |= (firstBit >> 7)
     } else {
-      value = (value << 1) | ((array[index + 1] & 0x80) >> 7);
+      value = (value << 1) | ((array[index + 1] & 0x80) >> 7)
     }
-    return value;
-  });
+    return value
+  })
 }
 
 function arrayRightShift(array: Uint8Array) {
-  const lastBit = array[array.length - 1] & 0x01;
+  const lastBit = array[array.length - 1] & 0x01
   return array.map((value, index) => {
     if (index === 0) {
-      value >>= 1;
-      value |= (lastBit << 7);
+      value >>= 1
+      value |= (lastBit << 7)
     } else {
-      value = (value >> 1) | ((array[index - 1] & 0x01) << 7);
+      value = (value >> 1) | ((array[index - 1] & 0x01) << 7)
     }
-    return value;
-  });
+    return value
+  })
 }
 
 function encryptBuffer(array: Uint8Array | number[], ...salts: number[]) {
@@ -335,7 +341,7 @@ function unpackData<T>(array: Shuttle<T> | Uint8Array | number[] | string, ...sa
 
 class Shuttle<T> extends Uint8Array {
   static load<T>(data: Shuttle<T> | Uint8Array | number[] | string) {
-    return new Shuttle<T>(typeof data === 'string' ? asciiToNumbers(data) : data);
+    return new Shuttle<T>(typeof data === 'string' ? asciiToNumbers(data) : data)
   }
 
   static pack<T>(data: T, salts: number[]): Shuttle<T>
