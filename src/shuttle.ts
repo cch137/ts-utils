@@ -20,8 +20,11 @@ const flags_NAN = 54
 const flags_ZERO = 55
 // STRINGS
 const flags_STR = 64
+const flags_STR_EMPTY = 65
 const flags_STR_NUMR = 66
 const flags_STR_NUMR_ = 67
+const flags_STR_HEX_UP = 68
+const flags_STR_HEX_LW = 69
 // ITERABLES
 const flags_ARR = 96
 const flags_SET = 98
@@ -160,10 +163,22 @@ function unpackNumber(bytes: Uint8Array | number[], p = new BufferPointer(), cus
   return sign * (Number(intValue) + (floatValue / 2 ** floatBooleans.length))
 }
 
+const hexToBigint = (s: string) => s
+  .toLowerCase().split('').reverse()
+  .map((v, i) => BigInt('0123456789abcdef'.indexOf(v)) * (BigInt(16) ** BigInt(i)))
+  .reduce((a, b) => a + b)
+
 function packString(s: string) {
-  if (!Number.isNaN(+s) && +s % 1 === 0) {
-    const n = BigInt(s)
-    if (n.toString() === s) return new Uint8Array([s.startsWith('-') ? flags_STR_NUMR_ : flags_STR_NUMR, ...packNumber(n).slice(1)])
+  if (s === '') return new Uint8Array([flags_STR_EMPTY])
+  if (/^-?[0-9]+$/.test(s)) {
+    const n = BigInt(s), flag = s.startsWith('-') ? flags_STR_NUMR_ : flags_STR_NUMR
+    if (n.toString() === s) return new Uint8Array([flag, ...packNumber(n).slice(1)])
+  }
+  if (/^[0-9a-f]+$/.test(s)) {
+    return new Uint8Array([flags_STR_HEX_LW, ...packNumber(hexToBigint(s)).slice(1)])
+  }
+  if (/^[0-9A-F]+$/.test(s)) {
+    return new Uint8Array([flags_STR_HEX_UP, ...packNumber(hexToBigint(s)).slice(1)])
   }
   const array = new TextEncoder().encode(s)
   return new Uint8Array([flags_STR, ...packNoflagUint(array.length), ...array])
@@ -172,8 +187,11 @@ function packString(s: string) {
 function unpackString(bytes: Uint8Array, p = new BufferPointer()) {
   const flag = bytes[p.walk()]
   switch (flag) {
+    case flags_STR_EMPTY: return ''
     case flags_STR_NUMR: return unpackNumber(bytes, p, flags_BIGINT).toString()
     case flags_STR_NUMR_: return unpackNumber(bytes, p, flags_BIGINT_).toString()
+    case flags_STR_HEX_LW: return unpackNumber(bytes, p, flags_BIGINT).toString(16)
+    case flags_STR_HEX_UP: return unpackNumber(bytes, p, flags_BIGINT_).toString(16).toUpperCase()
     default:
       const stringLength = unpackNoflagUint(bytes, p)
       return new TextDecoder().decode(bytes.slice(p.pos, p.walked(stringLength)))

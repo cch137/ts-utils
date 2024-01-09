@@ -2,7 +2,7 @@ async function test() {
   const { Shuttle } = await import('./shuttle');
 
   const salts = [27414124977, 71264714, 927412940, 45427579829]
-  const data0 = { uid: '48374801248067' }
+  const data0 = { uid: 'a483e74c8d0124f8bb067' }
   console.time('pack')
   const data1 = Shuttle.pack(data0, [...salts, ...salts, ...salts, ...salts])
   console.timeEnd('pack')
