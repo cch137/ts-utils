@@ -1,5 +1,6 @@
 import { asciiToNumbers, numbersToAscii } from "./format/binary"
 import { Random } from "./random"
+import hash from "./format/hash"
 
 // FLAGS
 // SPECIAL FLAGS
@@ -348,13 +349,19 @@ function decryptBuffer(array: Uint8Array | number[], ...salts: number[]) {
 function packData<T>(data: T, salts: number[]): Shuttle<T>
 function packData<T>(data: T, ...salts: number[]): Shuttle<T>
 function packData<T>(data: T, ...salts: (number | number[])[]) {
-  return new Shuttle(encryptBuffer(_packData(data), ...salts.flat(1)))
+  return new Shuttle(encryptBuffer(_packData(data), ...salts.flat()))
 }
 
 function unpackData<T>(array: Shuttle<T> | Uint8Array | number[] | string, salts: number[]): T
 function unpackData<T>(array: Shuttle<T> | Uint8Array | number[] | string, ...salts: number[]): T
 function unpackData<T>(array: Shuttle<T> | Uint8Array | number[] | string, ...salts: (number | number[])[]) {
-  return _unpackData(decryptBuffer(typeof array === 'string' ? asciiToNumbers(array) : array, ...salts.flat(1)))
+  return _unpackData(decryptBuffer(typeof array === 'string' ? asciiToNumbers(array) : array, ...salts.flat()))
+}
+
+function hashData(data: any, algorithm: 'MD5' | 224 | 256 | 384 | 512, salts: number[]): string
+function hashData(data: any, algorithm: 'MD5' | 224 | 256 | 384 | 512, ...salts: number[]): string
+function hashData(data: any, algorithm: 'MD5' | 224 | 256 | 384 | 512, ...salts: (number | number[])[]) {
+  return hash(packData(data, salts.flat()).toBase64(), algorithm)
 }
 
 class Shuttle<T> extends Uint8Array {
@@ -362,18 +369,9 @@ class Shuttle<T> extends Uint8Array {
     return new Shuttle<T>(typeof data === 'string' ? asciiToNumbers(data) : data)
   }
 
-  static pack<T>(data: T, salts: number[]): Shuttle<T>
-  static pack<T>(data: T, ...salts: number[]): Shuttle<T>
-  static pack<T>(data: T, ...salts: (number | number[])[]) {
-    return packData(data, ...salts.flat(1))
-  }
-
-  static unpack<T>(data: Shuttle<T> | Uint8Array | number[] | string, salts: number[]): T
-  static unpack<T>(data: Shuttle<T> | Uint8Array | number[] | string, ...salts: number[]): T
-  static unpack<T>(data: Shuttle<T> | Uint8Array | number[] | string, ...salts: (number | number[])[]) {
-    return unpackData(data, ...salts.flat(1))
-  }
-
+  static pack = packData
+  static unpack = unpackData
+  static hash = hashData
   static packUint = packNoflagUint
   static unpackUint = unpackNoflagUint
   static decrypt = decryptBuffer
@@ -382,7 +380,7 @@ class Shuttle<T> extends Uint8Array {
   unpack(salts: number[]): T
   unpack(...salts: number[]): T
   unpack(...salts: (number | number[])[]) {
-    return unpackData(this, ...salts.flat(1))
+    return unpackData(this, ...salts.flat())
   }
 
   toBase64(): string {
@@ -396,6 +394,7 @@ export {
   Shuttle,
   packData,
   unpackData,
+  hashData,
   packNoflagUint,
   unpackNoflagUint,
   encryptBuffer,
