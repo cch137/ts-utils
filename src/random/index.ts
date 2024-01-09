@@ -28,8 +28,8 @@ class Random {
     return Math.floor(start + this.random() * end)
   }
   
-  public choice<T>(array: T[]): T[]
-  public choice(array: string): string[]
+  public choice<T>(array: T[]): T
+  public choice(array: string): string
   public choice<T>(array: T[] | string) {
     return array[this.randInt(0, array.length)]
   }
