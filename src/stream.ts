@@ -112,6 +112,21 @@ class Stream extends EventTarget {
   }
 }
 
+async function readStream(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
+  const reader = stream.getReader();
+  const buffers: Uint8Array[] = [];
+  while (true) {
+    const { done, value } = await reader.read();
+    if (value) buffers.push(value);
+    if (done) break;
+  }
+  return Uint8Array.from(buffers.map(b => [...b]).flat())
+}
+
+export {
+  readStream,
+}
+
 export type { Stream, StreamPipe }
 
 export default Stream
