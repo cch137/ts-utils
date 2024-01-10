@@ -123,8 +123,13 @@ async function readStream(stream: ReadableStream<Uint8Array>): Promise<Uint8Arra
   return Uint8Array.from(buffers.map(b => [...b]).flat())
 }
 
+async function readString(stream: ReadableStream<Uint8Array>): Promise<String> {
+  return new TextDecoder().decode(await readStream(stream))
+}
+
 export {
   readStream,
+  readString,
 }
 
 export type { Stream, StreamPipe }
