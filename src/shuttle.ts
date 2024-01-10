@@ -360,7 +360,8 @@ function unpackData<T>(array: Shuttle<T> | Uint8Array | number[] | string, ...sa
 }
 
 function hashData<T>(array: Shuttle<T> | Uint8Array | number[] | string, algorithm: Algorithm): string {
-  if (typeof array !== 'string') return hashData(Shuttle.load(array).toBase64(), algorithm)
+  if (array instanceof Shuttle) return hashData(array.toBase64(), algorithm)
+  if (typeof array !== 'string') return hashData(Shuttle.load(array), algorithm)
   return hash(array, algorithm)
 }
 
@@ -377,7 +378,7 @@ function unpackDataWithHash<T>(array: Shuttle<[string, Shuttle<T>]> | Uint8Array
 function unpackDataWithHash<T>(array: Shuttle<[string, Shuttle<T>]> | Uint8Array | number[] | string, algorithm: Algorithm, ...salts: (number | number[])[]) {
   const [hash, _array] = unpackData<[string, Shuttle<T>]>(array, salts.flat())
   const correctHash = hashData(_array, algorithm)
-  if (hash !== correctHash) throw new Error('Hash value not match')
+  if (hash !== correctHash) throw new Error('Hash value mismatch')
   return unpackData(_array)
 }
 
