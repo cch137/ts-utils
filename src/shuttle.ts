@@ -1,6 +1,7 @@
 import { asciiToNumbers, numbersToAscii } from "./format/binary"
 import { Random } from "./random"
 import hash from "./format/hash"
+import type { Algorithm } from "./format/hash"
 
 // FLAGS
 // SPECIAL FLAGS
@@ -358,10 +359,26 @@ function unpackData<T>(array: Shuttle<T> | Uint8Array | number[] | string, ...sa
   return _unpackData(decryptBuffer(typeof array === 'string' ? asciiToNumbers(array) : array, ...salts.flat()))
 }
 
-function hashData(data: any, algorithm: 'MD5' | 224 | 256 | 384 | 512, salts: number[]): string
-function hashData(data: any, algorithm: 'MD5' | 224 | 256 | 384 | 512, ...salts: number[]): string
-function hashData(data: any, algorithm: 'MD5' | 224 | 256 | 384 | 512, ...salts: (number | number[])[]) {
-  return hash(packData(data, salts.flat()).toBase64(), algorithm)
+function hashData<T>(array: Shuttle<T> | Uint8Array | number[] | string, algorithm: Algorithm): string {
+  if (typeof array !== 'string') return hashData(Shuttle.load(array).toBase64(), algorithm)
+  return hash(array, algorithm)
+}
+
+function packDataWithHash<T>(data: T, algorithm: Algorithm, salts: number[]): Shuttle<[string, Shuttle<T>]>
+function packDataWithHash<T>(data: T, algorithm: Algorithm, ...salts: number[]): Shuttle<[string, Shuttle<T>]>
+function packDataWithHash<T>(data: T, algorithm: Algorithm, ...salts: (number | number[])[]) {
+  const array = packData(data)
+  const hash = hashData(array, algorithm)
+  return packData<[string, Shuttle<T>]>([hash, array], salts.flat())
+}
+
+function unpackDataWithHash<T>(array: Shuttle<[string, Shuttle<T>]> | Uint8Array | number[] | string, algorithm: Algorithm, salts: number[]): T
+function unpackDataWithHash<T>(array: Shuttle<[string, Shuttle<T>]> | Uint8Array | number[] | string, algorithm: Algorithm, ...salts: number[]): T
+function unpackDataWithHash<T>(array: Shuttle<[string, Shuttle<T>]> | Uint8Array | number[] | string, algorithm: Algorithm, ...salts: (number | number[])[]) {
+  const [hash, _array] = unpackData<[string, Shuttle<T>]>(array, salts.flat())
+  const correctHash = hashData(_array, algorithm)
+  if (hash !== correctHash) throw new Error('Hash value not match')
+  return unpackData(_array)
 }
 
 class Shuttle<T> extends Uint8Array {
@@ -371,6 +388,8 @@ class Shuttle<T> extends Uint8Array {
 
   static pack = packData
   static unpack = unpackData
+  static packWithHash = packDataWithHash
+  static unpackWithHash = unpackDataWithHash
   static hash = hashData
   static packUint = packNoflagUint
   static unpackUint = unpackNoflagUint
@@ -380,7 +399,13 @@ class Shuttle<T> extends Uint8Array {
   unpack(salts: number[]): T
   unpack(...salts: number[]): T
   unpack(...salts: (number | number[])[]) {
-    return unpackData(this, ...salts.flat())
+    return unpackData(this, salts.flat())
+  }
+
+  unpackWithHash(algorithm: Algorithm, salts: number[]): T
+  unpackWithHash(algorithm: Algorithm, ...salts: number[]): T
+  unpackWithHash(algorithm: Algorithm, ...salts: (number | number[])[]) {
+    return unpackDataWithHash(this, algorithm, salts.flat())
   }
 
   toBase64(): string {
@@ -394,6 +419,8 @@ export {
   Shuttle,
   packData,
   unpackData,
+  packDataWithHash,
+  unpackDataWithHash,
   hashData,
   packNoflagUint,
   unpackNoflagUint,
