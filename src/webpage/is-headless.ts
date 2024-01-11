@@ -78,9 +78,10 @@ const isHeadless = (
   const pf = tryDefault(() => ignorePlatformMismatc ? false : isPlatformNotSame(nav))
   /** Chromium 瀏覽器的沒有 window.chrome 屬性 */ // @ts-ignore
   const cr = tryDefault(() => isChromeErr(win, nav))
+  const details = { wd, pg, lg, pf, cr }
   return {
-    valid: cr || lg || pf || pg || wd,
-    details: { wd, pg, lg, pf, cr }
+    valid: !Object.values(details).every(i => !i),
+    details
   }
 }
 
