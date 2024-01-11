@@ -3,7 +3,7 @@ function uint8ArrayToNumbers(array: Uint8Array | (number | bigint)[]) {
 }
 
 function numbersToAscii(array: Uint8Array | (number | bigint)[]) {
-  return btoa(String.fromCharCode.apply(null, uint8ArrayToNumbers(array))).replace(/[=]+/, '')
+  return btoa(String.fromCharCode.apply(null, uint8ArrayToNumbers(array))).replace(/[=]+$/, '')
 }
 
 function asciiToNumbers(array: string) {
