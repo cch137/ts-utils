@@ -62,7 +62,12 @@ const tryDefault = (callback: () => boolean, defaultValue: boolean = true) => {
   }
 }
 
-const isHeadless = (win: Window = window, doc: Document = document, nav: Navigator = navigator) => {
+const isHeadless = (
+  win: Window = window,
+  doc: Document = document,
+  nav: Navigator = navigator,
+  ignorePlatformMismatc: boolean = false
+) => {
   /** webdriver 存在（通常無頭瀏覽器 webdriver 都是 true） */
   const wd = tryDefault(() => isWebdriver(nav))
   /** Plugins 異常（無頭瀏覽器沒有 Plugins，例如一些瀏覽器的插件，包括 PDF 查看器） */
@@ -70,7 +75,7 @@ const isHeadless = (win: Window = window, doc: Document = document, nav: Navigat
   /** language(s) 不存在（只有較舊的無頭請求才被抓到） */
   const lg = tryDefault(() => isLanguageErr(nav))
   /** navigator.platform 和 userAgent 中的 platform 不符合 */
-  const pf = tryDefault(() => isPlatformNotSame(nav))
+  const pf = tryDefault(() => ignorePlatformMismatc ? false : isPlatformNotSame(nav))
   /** Chromium 瀏覽器的沒有 window.chrome 屬性 */ // @ts-ignore
   const cr = tryDefault(() => isChromeErr(win, nav))
   return {
