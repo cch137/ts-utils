@@ -54,18 +54,25 @@ const isChromeErr = (win: Window = window, nav: Navigator) => {
   const { userAgent = '' } = nav
   return userAgent.includes('Chrome') ? !chrome : false
 }
+const tryDefault = (callback: () => boolean, defaultValue: boolean = true) => {
+  try {
+    return callback()
+  } catch {
+    return defaultValue
+  }
+}
 
 const isHeadless = (win: Window = window, doc: Document = document, nav: Navigator = navigator) => {
   /** webdriver 存在（通常無頭瀏覽器 webdriver 都是 true） */
-  const wd = isWebdriver(nav)
+  const wd = tryDefault(() => isWebdriver(nav))
   /** Plugins 異常（無頭瀏覽器沒有 Plugins，例如一些瀏覽器的插件，包括 PDF 查看器） */
-  const pg = isPluginsErr(doc, nav)
+  const pg = tryDefault(() => isPluginsErr(doc, nav))
   /** language(s) 不存在（只有較舊的無頭請求才被抓到） */
-  const lg = isLanguageErr(nav)
+  const lg = tryDefault(() => isLanguageErr(nav))
   /** navigator.platform 和 userAgent 中的 platform 不符合 */
-  const pf = isPlatformNotSame(nav)
+  const pf = tryDefault(() => isPlatformNotSame(nav))
   /** Chromium 瀏覽器的沒有 window.chrome 屬性 */ // @ts-ignore
-  const cr = isChromeErr(win, nav)
+  const cr = tryDefault(() => isChromeErr(win, nav))
   return {
     valid: cr || lg || pf || pg || wd,
     details: { wd, pg, lg, pf, cr }
