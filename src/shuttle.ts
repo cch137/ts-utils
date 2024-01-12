@@ -1,4 +1,4 @@
-import { asciiToNumbers, numbersToAscii } from "./format/binary"
+import { asciiToNumbers, numbersToAscii, convertUintArray } from "./format/binary"
 import { Random } from "./random"
 import hash from "./format/hash"
 import type { Algorithm } from "./format/hash"
@@ -61,26 +61,6 @@ class BufferPointer {
 
 function getBufferBytePerElement(bytes: Uint8Array | Uint16Array | Uint32Array) {
   return bytes instanceof Uint8Array ? 1 : bytes instanceof Uint16Array ? 2 : bytes instanceof Uint32Array ? 4 : 0
-}
-
-/** Warning: This function only allows bidirectional conversion of encoding and decoding in this module. If it is a one-way conversion, it may cause errors. */
-function convertUintArray(bytes: Uint8Array | Uint16Array | Uint32Array, toUint: 8 | 16 | 32) {
-  const fromBytePerEl = getBufferBytePerElement(bytes)
-  const fromUint = 8 * fromBytePerEl as 8 | 16 | 32
-  const toBytePerEl = toUint / 8 as 1 | 2 | 4
-  if (bytes.length % toBytePerEl !== 0) throw new Error(`Buffer size is not divisible`)
-  const toConstruct = [Uint8Array, Uint16Array, Uint32Array][Math.log(toBytePerEl) / Math.log(2)]
-  if (fromUint === toUint) return new toConstruct(bytes)
-  const step = fromBytePerEl / toBytePerEl
-  if (fromUint < toUint) {
-    return new toConstruct(bytes.buffer, bytes.byteOffset, bytes.length * step)
-  }
-  const arr = new toConstruct(bytes.length * step)
-  for (let i = 0, j; i < bytes.length; i++) {
-    let value = bytes[i]
-    for (j = 0; j < step; j++) arr[i * step + j] = (value >> (toUint * j)) & (2 ** fromUint - 1)
-  }
-  return arr
 }
 
 function throwInvalidFlag(flag: number): never {
@@ -264,7 +244,7 @@ function packBuffer(bytes: Uint8Array | Uint16Array | Uint32Array) {
 
 function unpackBuffer(bytes: Uint8Array, p = new BufferPointer) {
   const flag = bytes[p.walk()]
-  const bytePerElement = [0, flags_BUF8, flags_BUF16, 0, flags_BUF32].indexOf(flag)
+  const bytePerElement = [0, flags_BUF8, flags_BUF16, 0, flags_BUF32].indexOf(flag) as 1 | 2 | 4
   const bufferLength = unpackNoflagUint(bytes, p) * BigInt(bytePerElement)
   const buffer = bytes.slice(p.pos, p.walked(bufferLength))
   return convertUintArray(buffer, bytePerElement * 8 as 8 | 16 | 32)
