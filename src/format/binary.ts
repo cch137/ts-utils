@@ -10,16 +10,10 @@ function asciiToNumbers(array: string) {
   return Array.from(atob(array)).map(c => c.charCodeAt(0))
 }
 
-function convertUintArray(array: Uint8Array, toUint: 8): Uint8Array
-function convertUintArray(array: Uint8Array, toUint: 16): Uint16Array
-function convertUintArray(array: Uint8Array, toUint: 32): Uint32Array
-function convertUintArray(array: Uint16Array, toUint: 8): Uint8Array
-function convertUintArray(array: Uint16Array, toUint: 16): Uint16Array
-function convertUintArray(array: Uint16Array, toUint: 32): Uint32Array
-function convertUintArray(array: Uint32Array, toUint: 8): Uint8Array
-function convertUintArray(array: Uint32Array, toUint: 16): Uint16Array
-function convertUintArray(array: Uint32Array, toUint: 32): Uint32Array
 function convertUintArray(array: Uint8Array | Uint16Array | Uint32Array, toUint: 8 | 16 | 32): Uint8Array | Uint16Array | Uint32Array
+function convertUintArray(array: Uint8Array | Uint16Array | Uint32Array, toUint: 8): Uint8Array
+function convertUintArray(array: Uint8Array | Uint16Array | Uint32Array, toUint: 16): Uint16Array
+function convertUintArray(array: Uint8Array | Uint16Array | Uint32Array, toUint: 32): Uint32Array
 function convertUintArray(array: Uint8Array | Uint16Array | Uint32Array, toUint: 8 | 16 | 32) {
   switch (toUint) {
     case 8:

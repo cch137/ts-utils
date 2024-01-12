@@ -1,7 +1,7 @@
-import { asciiToNumbers, numbersToAscii, convertUintArray } from "./format/binary"
 import { Random } from "./random"
 import hash from "./format/hash"
 import type { Algorithm } from "./format/hash"
+import { asciiToNumbers, numbersToAscii, convertUintArray } from "./format/binary"
 
 // FLAGS
 // SPECIAL FLAGS
@@ -27,6 +27,10 @@ const flags_STR_NUMR = 66
 const flags_STR_NUMR_ = 67
 const flags_STR_HEX_UP = 68
 const flags_STR_HEX_LW = 69
+const flags_STR_B64 = 70
+const flags_STR_B64_URL = 71
+const flags_STR_BIN = 72
+const flags_STR_BIN_ = 73
 // ITERABLES
 const flags_ARR = 96
 const flags_SET = 98
@@ -150,8 +154,17 @@ const hexToBigint = (s: string) => s
   .map((v, i) => BigInt('0123456789abcdef'.indexOf(v)) * (BigInt(16) ** BigInt(i)))
   .reduce((a, b) => a + b)
 
+const binToBigint = (s: string) => s
+  .replace('-', '').split('').reverse()
+  .map((v, i) => BigInt('01'.indexOf(v)) * (BigInt(2) ** BigInt(i)))
+  .reduce((a, b) => a + b) * BigInt(s.startsWith('-') ? -1 : 1)
+
 function packString(s: string) {
   if (s === '') return new Uint8Array([flags_STR_EMPTY])
+  if (/^-?[0-1]+$/.test(s)) {
+    const flag = s.startsWith('-') ? flags_STR_BIN_ : flags_STR_BIN
+    return new Uint8Array([flag, ...packNumber(binToBigint(s)).slice(1)])
+  }
   if (/^-?[0-9]+$/.test(s)) {
     const n = BigInt(s), flag = s.startsWith('-') ? flags_STR_NUMR_ : flags_STR_NUMR
     if (n.toString() === s) return new Uint8Array([flag, ...packNumber(n).slice(1)])
@@ -173,7 +186,9 @@ function unpackString(bytes: Uint8Array, p = new BufferPointer()) {
     case flags_STR_NUMR: return unpackNumber(bytes, p, flags_BIGINT).toString()
     case flags_STR_NUMR_: return unpackNumber(bytes, p, flags_BIGINT_).toString()
     case flags_STR_HEX_LW: return unpackNumber(bytes, p, flags_BIGINT).toString(16)
-    case flags_STR_HEX_UP: return unpackNumber(bytes, p, flags_BIGINT_).toString(16).toUpperCase()
+    case flags_STR_HEX_UP: return unpackNumber(bytes, p, flags_BIGINT).toString(16).toUpperCase()
+    case flags_STR_BIN: return unpackNumber(bytes, p, flags_BIGINT).toString(2)
+    case flags_STR_BIN_: return unpackNumber(bytes, p, flags_BIGINT_).toString(2)
     default:
       const stringLength = unpackNoflagUint(bytes, p)
       return new TextDecoder().decode(bytes.slice(p.pos, p.walked(stringLength)))
