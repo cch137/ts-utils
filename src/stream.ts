@@ -124,7 +124,7 @@ async function readStream(stream?: ReadableStream<Uint8Array> | null): Promise<U
   return Uint8Array.from(buffers.map(b => [...b]).flat())
 }
 
-async function readString(stream: ReadableStream<Uint8Array>): Promise<string> {
+async function readString(stream?: ReadableStream<Uint8Array> | null): Promise<string> {
   return new TextDecoder().decode(await readStream(stream))
 }
 
