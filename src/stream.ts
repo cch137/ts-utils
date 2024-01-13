@@ -112,7 +112,8 @@ class Stream extends EventTarget {
   }
 }
 
-async function readStream(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
+async function readStream(stream?: ReadableStream<Uint8Array> | null): Promise<Uint8Array> {
+  if (!stream) return new Uint8Array();
   const reader = stream.getReader();
   const buffers: Uint8Array[] = [];
   while (true) {
