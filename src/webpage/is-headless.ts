@@ -1,11 +1,9 @@
 const isWebdriver = (nav: Navigator) => {
-  const webdriver = Boolean(nav?.webdriver)
-  if (webdriver) return true
+  if (nav.webdriver) return true
   // 偵測 webdriver 是否有被重新定義，當被重新定義時是不正常請求
-  const isRedefinedWebdriver = Object.keys(
+  return Object.keys(
     Object.getOwnPropertyDescriptors(nav)
   ).includes('webdriver')
-  return isRedefinedWebdriver
 }
 
 const isPlatformNotSame = (nav: Navigator) => {
@@ -66,7 +64,7 @@ const isHeadless = (
   win: Window = window,
   doc: Document = document,
   nav: Navigator = navigator,
-  ignorePlatformMismatc: boolean = false
+  ignorePlatformMismatch: boolean = false
 ) => {
   /** webdriver 存在（通常無頭瀏覽器 webdriver 都是 true） */
   const wd = tryDefault(() => isWebdriver(nav))
@@ -75,8 +73,8 @@ const isHeadless = (
   /** language(s) 不存在（只有較舊的無頭請求才被抓到） */
   const lg = tryDefault(() => isLanguageErr(nav))
   /** navigator.platform 和 userAgent 中的 platform 不符合 */
-  const pf = tryDefault(() => ignorePlatformMismatc ? false : isPlatformNotSame(nav))
-  /** Chromium 瀏覽器的沒有 window.chrome 屬性 */ // @ts-ignore
+  const pf = tryDefault(() => ignorePlatformMismatch ? false : isPlatformNotSame(nav))
+  /** Chrome 瀏覽器沒有 window.chrome 屬性 */
   const cr = tryDefault(() => isChromeErr(win, nav))
   const details = { wd, pg, lg, pf, cr }
   return {
