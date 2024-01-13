@@ -2,6 +2,7 @@ import { Random } from "./random"
 import hash from "./format/hash"
 import type { Algorithm } from "./format/hash"
 import { asciiToNumbers, numbersToAscii, convertUintArray } from "./format/binary"
+import { binToBigint, hexToBigint } from "./format/number"
 
 // FLAGS
 // SPECIAL FLAGS
@@ -148,16 +149,6 @@ function unpackNumber(bytes: Uint8Array | number[], p = new BufferPointer(), cus
   const floatBooleans = uintToBooleans(floatValue)
   return sign * (Number(intValue) + (floatValue / 2 ** floatBooleans.length))
 }
-
-const hexToBigint = (s: string) => s
-  .toLowerCase().split('').reverse()
-  .map((v, i) => BigInt('0123456789abcdef'.indexOf(v)) * (BigInt(16) ** BigInt(i)))
-  .reduce((a, b) => a + b)
-
-const binToBigint = (s: string) => s
-  .replace('-', '').split('').reverse()
-  .map((v, i) => BigInt('01'.indexOf(v)) * (BigInt(2) ** BigInt(i)))
-  .reduce((a, b) => a + b) * BigInt(s.startsWith('-') ? -1 : 1)
 
 function packString(s: string) {
   if (s === '') return new Uint8Array([flags_STR_EMPTY])
