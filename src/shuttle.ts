@@ -161,10 +161,12 @@ function packString(s: string) {
     if (n.toString() === s) return new Uint8Array([flag, ...packNumber(n).slice(1)])
   }
   if (/^[0-9a-f]+$/.test(s)) {
-    return new Uint8Array([flags_STR_HEX_LW, ...packNumber(hexToBigint(s)).slice(1)])
+    const n = hexToBigint(s)
+    if (n.toString(16) === s) return new Uint8Array([flags_STR_HEX_LW, ...packNumber(n).slice(1)])
   }
   if (/^[0-9A-F]+$/.test(s)) {
-    return new Uint8Array([flags_STR_HEX_UP, ...packNumber(hexToBigint(s)).slice(1)])
+    const n = hexToBigint(s)
+    if (n.toString(16).toUpperCase() === s) return new Uint8Array([flags_STR_HEX_UP, ...packNumber(n).slice(1)])
   }
   const array = new TextEncoder().encode(s)
   return new Uint8Array([flags_STR, ...packNoflagUint(array.length), ...array])
