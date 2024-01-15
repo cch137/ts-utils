@@ -364,7 +364,7 @@ function unpackDataWithHash<T>(array: Shuttle<[string, Shuttle<T>]> | Uint8Array
 function unpackDataWithHash<T>(array: Shuttle<[string, Shuttle<T>]> | Uint8Array | number[] | string, algorithm: Algorithm, ...salts: (number | number[])[]) {
   const [hash, _array] = unpackData<[string, Shuttle<T>]>(array, salts.flat())
   const correctHash = hashData(_array, algorithm)
-  if (hash !== correctHash) throw new Error('Hash value mismatch')
+  if (hash !== correctHash) throw new Error(`Hash Mismatch: "${hash}" !== "${correctHash}"`)
   return unpackData(_array)
 }
 
