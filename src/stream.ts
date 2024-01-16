@@ -45,6 +45,7 @@ class StreamPipe {
 class Stream extends EventTarget {
   readonly id: number
   data: string[] = []
+  lastError?: any
 
   #isEnd = false
   #timeoutId?: NodeJS.Timeout
@@ -109,6 +110,7 @@ class Stream extends EventTarget {
 
   error(e?: any) {
     this.dispatchEvent(new Event('error', e))
+    this.lastError = e
   }
 }
 
