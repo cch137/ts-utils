@@ -107,9 +107,17 @@ async function readString(stream?: ReadableStream<Uint8Array> | null): Promise<s
   return new TextDecoder().decode(await readStream(stream))
 }
 
+async function readJSON(stream?: ReadableStream<Uint8Array> | null) {
+  try {
+    return JSON.parse(await readString(stream))
+  } catch {}
+  return undefined;
+}
+
 export {
   readStream,
   readString,
+  readJSON,
 }
 
 export type { Stream, StreamPipe }
