@@ -8,7 +8,7 @@ type UniMessage = {
 }
 
 type UniOptions = {
-  model: UniModel;
+  model?: UniModel;
   messages: UniMessage[];
   temperature?: number;
   topP?: number;

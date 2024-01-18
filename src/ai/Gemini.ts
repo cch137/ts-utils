@@ -1,8 +1,7 @@
 import Stream from '../stream'
-
-import type { GenerativeModel, GenerationConfig, InputContent, Part } from '@google/generative-ai'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { BaseProvider, UniMessage, UniOptions } from './types';
+import type { GenerationConfig, InputContent, Part } from '@google/generative-ai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 type GeminiMessage = {
   role: 'model' | 'user';
@@ -56,18 +55,23 @@ const parseInputContents = (
 }
 
 class GeminiResponse extends Stream {
-  constructor(client: GeminiProvider, messages: InputContent[] = [], generationConfig: GenerationConfig = {}) {
+  constructor(
+    client: GeminiProvider,
+    messages: InputContent[] = [],
+    generationConfig: GenerationConfig = {},
+    model: string = client.defaultModel
+  ) {
     super();
     (async (stream) => {
       const { history, message } = parseInputContents(messages);
-      const model = client.models['gemini-pro']
-      const chat = model.startChat({
-        history,
-        generationConfig: {
-          maxOutputTokens: 8000,
-          ...generationConfig,
-        },
-      });
+      const chat = client.getGenerativeModel({ model })
+        .startChat({
+          history,
+          generationConfig: {
+            maxOutputTokens: 8000,
+            ...generationConfig,
+          },
+        });
       let globalError: Error | undefined = undefined
       const req = await chat.sendMessageStream(message?.parts || '');
       try {
@@ -95,8 +99,6 @@ class GeminiResponse extends Stream {
     })(this);
   }
 }
-
-type ModelName = 'gemini-pro'
 
 const convertToGeminiMessages = (messages: UniMessage[]) => {
   return messages.map((m) => {
@@ -126,23 +128,20 @@ const convertToGeminiMessages = (messages: UniMessage[]) => {
  */
 
 class GeminiProvider extends GoogleGenerativeAI implements BaseProvider {
-  readonly models: Record<ModelName, GenerativeModel>
-  constructor(apiKey: string) {
+  readonly defaultModel;
+
+  constructor(apiKey: string, defaultModel = 'gemini-pro') {
     super(apiKey);
-    const genAi = this;
-    this.models = {
-      get 'gemini-pro'() {
-        return genAi.getGenerativeModel({ model: 'gemini-pro' });
-      }
-    }
+    this.defaultModel = defaultModel;
   }
 
   ask(options: UniOptions) {
-    const { messages, temperature, topK, topP } = options;
+    const { model, messages, temperature, topK, topP } = options;
     return new GeminiResponse(
       this,
       convertToGeminiMessages(messages),
-      { temperature, topK, topP }
+      { temperature, topK, topP },
+      model,
     );
   }
 }

@@ -1,6 +1,6 @@
-import axios from 'axios'
 import Stream from '../stream'
 import type { BaseProvider, UniMessage, UniOptions } from './types';
+import axios from 'axios'
 
 type OneApiMessage = {
   role: 'system' | 'user' | 'assistant';
@@ -108,16 +108,19 @@ const convertToOneApiMessages = (messages: UniMessage[]) => {
 }
 
 class OneApiProvider implements BaseProvider {
+  readonly defaultModel;
+
   host: string;
   key: string;
 
-  constructor(host: string, key: string) {
+  constructor(host: string, key: string, defaultModel = 'gpt-4') {
     this.host = host;
     this.key = key;
+    this.defaultModel = defaultModel;
   }
 
   ask(options: UniOptions) {
-    const { model, messages, temperature, topK: top_k, topP: top_p } = options;
+    const { model = this.defaultModel, messages, temperature, topK: top_k, topP: top_p } = options;
     return new OneApiResponse(this, {
       model,
       messages: convertToOneApiMessages(messages),
