@@ -30,7 +30,7 @@ class StreamPipe {
     stream.addEventListener('data', () => this.read())
     stream.addEventListener('error', () => callHandler(handlers.error))
     stream.addEventListener('end', () => callHandler(handlers.end))
-    if (stream.isEnd) {
+    if (stream.done) {
       callHandler(handlers.end)
     }
   }
@@ -47,11 +47,11 @@ class Stream extends EventTarget {
   data: string[] = []
   lastError?: any
 
-  #isEnd = false
+  #done = false
   #timeoutId?: NodeJS.Timeout
 
-  get isEnd () {
-    return this.#isEnd
+  get done () {
+    return this.#done
   }
 
   get length () {
@@ -71,7 +71,7 @@ class Stream extends EventTarget {
   #extendTimeout() {
     clearTimeout(this.#timeoutId)
     return this.#timeoutId = setTimeout(() => {
-      if (!this.#isEnd) {
+      if (!this.#done) {
         this.error()
         this.end()
       }
@@ -98,7 +98,8 @@ class Stream extends EventTarget {
   }
 
   end() {
-    this.#isEnd = true
+    if (this.#done) return
+    this.#done = true
     // 在結束前多一個 data 事件，確保完成
     this.dispatchEvent(new Event('data'))
     this.dispatchEvent(new Event('end'))
