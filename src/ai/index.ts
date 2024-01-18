@@ -1,4 +1,4 @@
-import type { BaseProvider, UniOptions, ResponseStream } from "./types";
+import type { BaseProvider, UniOptions, BaseProviderResponse } from "./types";
 
 class SuperProvider<Providers extends Record<string, BaseProvider>> {
   readonly providers: Providers;
@@ -7,8 +7,8 @@ class SuperProvider<Providers extends Record<string, BaseProvider>> {
     this.providers = providers;
   }
 
-  ask(options: UniOptions, model?: keyof Providers): ResponseStream
-  ask(question: string, model?: keyof Providers): ResponseStream
+  ask(options: UniOptions, model?: keyof Providers): BaseProviderResponse
+  ask(question: string, model?: keyof Providers): BaseProviderResponse
   ask(options: UniOptions | string, model?: keyof Providers) {
     return this.providers[model || Object.keys(this.providers)[0]].ask(options as UniOptions & string);
   }

@@ -13,19 +13,21 @@ type UniOptions = {
   temperature?: number;
   topP?: number;
   topK?: number;
+  /** Only applicable to Gemini */
+  maxOutputTokens?: number;
 }
-
-type ResponseStream = Stream;
 
 interface BaseProvider {
-  ask(options: UniOptions): ResponseStream;
-  ask(question: string): ResponseStream;
+  ask(options: UniOptions): BaseProviderResponse;
+  ask(question: string): BaseProviderResponse;
 }
+
+interface BaseProviderResponse extends Stream {}
 
 export {
   UniModel,
   UniMessage,
   UniOptions,
   BaseProvider,
-  ResponseStream,
+  BaseProviderResponse,
 }

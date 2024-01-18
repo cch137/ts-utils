@@ -1,24 +1,10 @@
 import Stream from '../stream'
-import type { BaseProvider, UniMessage, UniOptions, ResponseStream } from './types';
+import type { BaseProvider, UniMessage, UniOptions, BaseProviderResponse } from './types';
 import axios from 'axios'
 
 type OneApiMessage = {
   role: 'system' | 'user' | 'assistant';
   content: string;
-}
-
-type OneApiOptions = {
-  messages: OneApiMessage[];
-  model: string;
-  temperature?: number;
-  top_p?: number;
-  top_k?: number;
-  stream?: true;
-}
-
-export type {
-  OneApiMessage,
-  OneApiOptions,
 }
 
 type ChatResponseChoice = {
@@ -50,27 +36,36 @@ type ChatResponse = {
   usage: { prompt_tokens: number, completion_tokens: number, total_tokens: number};
 }
 
+const convertToOneApiMessages = (messages: UniMessage[]) => {
+  return messages.map((m) => {
+    const { role = '', text = '' } = m;
+    return {
+      role: (role === 'user' || role === 'assistant' || role === 'system') ? role : 'user',
+      content: text
+    } as OneApiMessage
+  })
+}
+
 class OneApiResponse extends Stream {
-  constructor(client: OneApiProvider, options: OneApiOptions) {
+  constructor(client: OneApiProvider, options: UniOptions) {
     super();
-    const {
-      messages,
-      model,
-      temperature = 0.3,
-      top_p = 0.3,
-      top_k = 2,
-      stream: _stream = true
-    } = options;
     (async (stream: OneApiResponse) => {
       const url = `${client.host}/v1/chat/completions`;
       const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${client.key}` };
-      const res = await axios.post(url, {
+      const {
         messages,
+        model = client.defaultModel,
+        temperature = 0.3,
+        topP: top_p = 0.3,
+        topK: top_k = 4,
+      } = options;
+      const res = await axios.post(url, {
+        messages: convertToOneApiMessages(messages),
         model,
         temperature,
         top_p,
         top_k: model.startsWith('gpt-3.') ? undefined : top_k,
-        stream: _stream,
+        stream: true,
       }, {
         headers, validateStatus: (_) => true,
         responseType: 'stream'
@@ -97,16 +92,6 @@ class OneApiResponse extends Stream {
   }
 }
 
-const convertToOneApiMessages = (messages: UniMessage[]) => {
-  return messages.map((m) => {
-    const { role = '', text = '' } = m;
-    return {
-      role: (role === 'user' || role === 'model' || role === 'system') ? role : 'user',
-      content: text
-    } as OneApiMessage
-  })  
-}
-
 class OneApiProvider implements BaseProvider {
   readonly defaultModel;
 
@@ -119,18 +104,13 @@ class OneApiProvider implements BaseProvider {
     this.defaultModel = defaultModel;
   }
 
-  ask(options: UniOptions): ResponseStream
-  ask(question: string): ResponseStream
+  ask(options: UniOptions): BaseProviderResponse
+  ask(question: string): BaseProviderResponse
   ask(options: UniOptions | string) {
     if (typeof options === 'string') return this.ask({
       messages: [{ role: 'user', text: options }]
     });
-    const { model = this.defaultModel, messages, temperature, topK: top_k, topP: top_p } = options;
-    return new OneApiResponse(this, {
-      model,
-      messages: convertToOneApiMessages(messages),
-      temperature, top_k, top_p,
-    })
+    return new OneApiResponse(this, options);
   }
 }
 

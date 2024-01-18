@@ -1,6 +1,6 @@
 import Stream from '../stream'
-import type { BaseProvider, UniMessage, UniOptions, ResponseStream } from './types';
-import type { GenerationConfig, InputContent, Part } from '@google/generative-ai'
+import type { BaseProvider, UniMessage, UniOptions, BaseProviderResponse } from './types';
+import type { InputContent, Part } from '@google/generative-ai'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 type GeminiMessage = {
@@ -8,8 +8,14 @@ type GeminiMessage = {
   parts: string;
 }
 
-export type {
-  GeminiMessage,
+const convertToGeminiMessages = (messages: UniMessage[]) => {
+  return messages.map((m) => {
+    const { role = '', text = '' } = m;
+    return {
+      role: (role === 'user' || role === 'model') ? role : 'user',
+      parts: text
+    } as GeminiMessage
+  })
 }
 
 const convertPartsToString = (parts: string | (Part | string)[]) => {
@@ -57,21 +63,24 @@ const parseInputContents = (
 class GeminiResponse extends Stream {
   constructor(
     client: GeminiProvider,
-    messages: InputContent[] = [],
-    generationConfig: GenerationConfig = {},
-    model: string = client.defaultModel
+    options: UniOptions,
   ) {
     super();
     (async (stream) => {
-      const { history, message } = parseInputContents(messages);
-      const chat = client.getGenerativeModel({ model })
-        .startChat({
-          history,
-          generationConfig: {
-            maxOutputTokens: 8000,
-            ...generationConfig,
-          },
-        });
+      const {
+        model = client.defaultModel,
+        messages,
+        temperature = 0.3,
+        topK = 4,
+        topP = 0.3,
+        maxOutputTokens = 8000
+      } = options;
+      const { history, message } = parseInputContents(convertToGeminiMessages(messages));
+      const genModel = client.getGenerativeModel({ model });
+      const chat = genModel.startChat({
+        history,
+        generationConfig: { maxOutputTokens, temperature, topK, topP }
+      });
       let globalError: Error | undefined = undefined
       const req = await chat.sendMessageStream(message?.parts || '');
       try {
@@ -100,19 +109,9 @@ class GeminiResponse extends Stream {
   }
 }
 
-const convertToGeminiMessages = (messages: UniMessage[]) => {
-  return messages.map((m) => {
-    const { role = '', text = '' } = m;
-    return {
-      role: (role === 'user' || role === 'model') ? role : 'user',
-      parts: text
-    } as GeminiMessage
-  })
-}
-
 /**
  * More keys: (leaked from GitHub) \
- * AIzaSyDfGoWenCyM53XsN-AB6dci5dpNxFR-WXg (current) \
+ * AIzaSyDfGoWenCyM53XsN-AB6dci5dpNxFR-WXg \
  * AIzaSyA_D3B_6BAio2MGZc-asmjh3D_HGXPkLsU \
  * AIzaSyB-axwh7qrTGngrI2qNLgN5YAjCFJ-w0R8 \
  * AIzaSyCsEtcUJS6fwfKgBPyskX0cNvMEN4WgCX4 \
@@ -135,19 +134,13 @@ class GeminiProvider extends GoogleGenerativeAI implements BaseProvider {
     this.defaultModel = defaultModel;
   }
 
-  ask(options: UniOptions): ResponseStream
-  ask(question: string): ResponseStream
+  ask(options: UniOptions): BaseProviderResponse
+  ask(question: string): BaseProviderResponse
   ask(options: UniOptions | string) {
     if (typeof options === 'string') return this.ask({
       messages: [{ role: 'user', text: options }]
     });
-    const { model, messages, temperature, topK, topP } = options;
-    return new GeminiResponse(
-      this,
-      convertToGeminiMessages(messages),
-      { temperature, topK, topP },
-      model,
-    );
+    return new GeminiResponse(this, options);
   }
 }
 

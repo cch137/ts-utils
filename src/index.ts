@@ -14,3 +14,18 @@ async function test() {
 }
 
 // test()
+
+async function test1() {
+  const { GeminiProvider } = await import('./ai/index.js');
+  
+  const gemini = new GeminiProvider('AIzaSyA_D3B_6BAio2MGZc-asmjh3D_HGXPkLsU');
+
+  async function ask(question: string) {
+    const stream = gemini.ask(question);
+    await stream.untilDone;
+    return stream.read();
+  }
+
+  console.log(await ask('Hi'));
+}
+test1()
