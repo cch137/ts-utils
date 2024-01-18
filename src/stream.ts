@@ -63,7 +63,10 @@ class Stream extends EventTarget {
     if (this.#done) throw new Error('Done stream cannot be written to')
     this.data.push(value)
     this.dispatchEvent(new Event('data'))
-    if (this.#timeout) clearTimeout(this.#timeout)
+    if (this.#timeout !== undefined) {
+      clearTimeout(this.#timeout)
+      this.#timeout = undefined
+    }
   }
 
   readArray(startIndex = 0, endIndex = this.data.length) {
