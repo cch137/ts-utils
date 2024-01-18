@@ -37,6 +37,12 @@ class Stream extends EventTarget {
   #done = false
   #timeout?: NodeJS.Timeout
 
+  get untilDone() {
+    return this.#done
+      ? void 0
+      : new Promise<void>((r) => this.addEventListener('end', () => r()));
+  }
+
   get done () {
     return this.#done
   }
