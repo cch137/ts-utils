@@ -70,9 +70,9 @@ class GeminiResponse extends Stream {
       const {
         model = client.defaultModel,
         messages,
-        temperature = 0.3,
-        topK = 4,
-        topP = 0.3,
+        temperature,
+        topK,
+        topP,
         maxOutputTokens = 8000
       } = options;
       const { history, message } = parseInputContents(convertToGeminiMessages(messages));

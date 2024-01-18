@@ -55,16 +55,17 @@ class OneApiResponse extends Stream {
       const {
         messages,
         model = client.defaultModel,
-        temperature = 0.3,
-        topP: top_p = 0.3,
-        topK: top_k = 4,
+        temperature,
+        topP: top_p,
+        topK: top_k,
+        disableTopK = /^gpt[-_]?3$/i.test(model),
       } = options;
       const res = await axios.post(url, {
         messages: convertToOneApiMessages(messages),
         model,
         temperature,
         top_p,
-        top_k: model.startsWith('gpt-3.') ? undefined : top_k,
+        top_k: disableTopK ? undefined : top_k,
         stream: true,
       }, {
         headers, validateStatus: (_) => true,
