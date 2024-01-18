@@ -1,54 +1,41 @@
-let _id = 0
-
-function generateId() {
-  return _id++
+type Handlers = {
+  data?: (s: string) => void;
+  end?: () => void;
+  error?: () => void;
 }
 
-const streamManager = new Map<number, Stream>()
-
-type DataHandler = (value: string) => void
-type VoidHandler = () => void
-type Handlers = { data?: DataHandler, end?: VoidHandler, error?: VoidHandler }
-
-function callHandler (handler: DataHandler | VoidHandler | undefined, value?: any) {
-  if (handler) {
-    try {
-      handler(value)
-    } catch {}
-  }
+function caller (handler?: ((s: string) => void) | (() => void), value?: any) {
+  if (handler) handler(value)
 }
 
 class StreamPipe {
   readonly stream: Stream
   #index = 0
-  #ondata?: DataHandler
+  #ondata?: (s: string) => void
 
   constructor (stream: Stream, handlers: Handlers = {}) {
     this.stream = stream
     this.#ondata = handlers.data
-    this.read()
     stream.addEventListener('data', () => this.read())
-    stream.addEventListener('error', () => callHandler(handlers.error))
-    stream.addEventListener('end', () => callHandler(handlers.end))
-    if (stream.done) {
-      callHandler(handlers.end)
-    }
+    stream.addEventListener('error', () => caller(handlers.error))
+    stream.addEventListener('end', () => caller(handlers.end))
+    this.read()
+    if (stream.done) caller(handlers.end)
   }
 
-  read () {
+  read(separator = '') {
     const content = this.stream.readArray(this.#index)
-    callHandler(this.#ondata, content.join(''))
+    caller(this.#ondata, content.join(separator))
     this.#index += content.length
   }
 }
 
 class Stream extends EventTarget {
-  readonly id: number
   data: string[] = []
   lastError?: any
 
   #done = false
-  #timeoutId?: NodeJS.Timeout
+  #timeout?: NodeJS.Timeout
 
   get done () {
     return this.#done
@@ -58,25 +45,14 @@ class Stream extends EventTarget {
     return this.data.length
   }
 
-  timeoutMs: number
-
   constructor (timeoutMs = 1 * 60 * 1000) {
     super()
-    this.timeoutMs = timeoutMs
-    this.id = generateId()
-    streamManager.set(this.id, this)
-    this.#extendTimeout()
-  }
-
-  #extendTimeout() {
-    clearTimeout(this.#timeoutId)
-    return this.#timeoutId = setTimeout(() => {
+    this.#timeout = setTimeout(() => {
       if (!this.#done) {
         this.error()
         this.end()
       }
-      this.destroy()
-    }, this.timeoutMs)
+    }, timeoutMs)
   }
 
   pipe(handlers: Handlers = {}) {
@@ -84,17 +60,18 @@ class Stream extends EventTarget {
   }
 
   write(value: string) {
+    if (this.#done) throw new Error('Done stream cannot be written to')
     this.data.push(value)
     this.dispatchEvent(new Event('data'))
-    this.#extendTimeout()
+    if (this.#timeout) clearTimeout(this.#timeout)
   }
 
   readArray(startIndex = 0, endIndex = this.data.length) {
     return this.data.slice(startIndex, endIndex)
   }
 
-  read(startIndex = 0, endIndex = this.data.length) {
-    return this.readArray(startIndex, endIndex).join('')
+  read(startIndex = 0, endIndex = this.data.length, separator = '') {
+    return this.readArray(startIndex, endIndex).join(separator)
   }
 
   end() {
@@ -103,10 +80,6 @@ class Stream extends EventTarget {
     // 在結束前多一個 data 事件，確保完成
     this.dispatchEvent(new Event('data'))
     this.dispatchEvent(new Event('end'))
-  }
-
-  destroy() {
-    streamManager.delete(this.id)
   }
 
   error(e?: any) {
