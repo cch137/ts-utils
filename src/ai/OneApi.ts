@@ -1,5 +1,5 @@
 import Stream from '../stream'
-import type { BaseProvider, UniMessage, UniOptions } from './types';
+import type { BaseProvider, UniMessage, UniOptions, ResponseStream } from './types';
 import axios from 'axios'
 
 type OneApiMessage = {
@@ -119,7 +119,12 @@ class OneApiProvider implements BaseProvider {
     this.defaultModel = defaultModel;
   }
 
-  ask(options: UniOptions) {
+  ask(options: UniOptions): ResponseStream
+  ask(question: string): ResponseStream
+  ask(options: UniOptions | string) {
+    if (typeof options === 'string') return this.ask({
+      messages: [{ role: 'user', text: options }]
+    });
     const { model = this.defaultModel, messages, temperature, topK: top_k, topP: top_p } = options;
     return new OneApiResponse(this, {
       model,

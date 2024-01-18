@@ -1,5 +1,5 @@
 import Stream from '../stream'
-import type { BaseProvider, UniMessage, UniOptions } from './types';
+import type { BaseProvider, UniMessage, UniOptions, ResponseStream } from './types';
 import type { GenerationConfig, InputContent, Part } from '@google/generative-ai'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
@@ -135,7 +135,12 @@ class GeminiProvider extends GoogleGenerativeAI implements BaseProvider {
     this.defaultModel = defaultModel;
   }
 
-  ask(options: UniOptions) {
+  ask(options: UniOptions): ResponseStream
+  ask(question: string): ResponseStream
+  ask(options: UniOptions | string) {
+    if (typeof options === 'string') return this.ask({
+      messages: [{ role: 'user', text: options }]
+    });
     const { model, messages, temperature, topK, topP } = options;
     return new GeminiResponse(
       this,

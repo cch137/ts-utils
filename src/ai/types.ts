@@ -19,6 +19,8 @@ type ResponseStream = Stream;
 
 interface BaseProvider {
   ask(options: UniOptions): ResponseStream;
+  ask(question: string): ResponseStream;
+  ask(options: UniOptions | string): ResponseStream;
 }
 
 export {
