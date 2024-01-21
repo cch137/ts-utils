@@ -90,8 +90,8 @@ class Stream extends EventTarget {
   }
 
   error(e?: any) {
-    this.dispatchEvent(new Event('error', e))
     this.lastError = e
+    this.dispatchEvent(new Event('error', e))
   }
 }
 
