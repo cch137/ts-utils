@@ -8,7 +8,7 @@ type GeminiMessage = {
   parts: string;
 }
 
-const convertToGeminiMessages = (messages: UniMessage[]) => {
+const convertToGeminiMessages = (messages: UniMessage[] = []) => {
   return messages.map((m) => {
     const { role = '', text = '' } = m;
     return {

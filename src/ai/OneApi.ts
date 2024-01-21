@@ -36,7 +36,7 @@ type ChatResponse = {
   usage: { prompt_tokens: number, completion_tokens: number, total_tokens: number};
 }
 
-const convertToOneApiMessages = (messages: UniMessage[]) => {
+const convertToOneApiMessages = (messages: UniMessage[] = []) => {
   return messages.map((m) => {
     const { role = '', text = '' } = m;
     return {
