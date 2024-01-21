@@ -89,7 +89,7 @@ class GeminiResponse extends Stream {
           if (chunk.done) break;
           const { candidates, promptFeedback } = chunk.value
           if (promptFeedback?.blockReason) {
-            globalError = new Error(`Model refused to respond. (Ratings: ${promptFeedback.safetyRatings.map(r => `${r.probability} ${r.category}`).join(', ')})`)
+            globalError = new Error(`Model refused to respond: ${JSON.stringify(promptFeedback)}`)
             throw globalError
           }
           if (candidates === undefined) continue
