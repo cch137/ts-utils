@@ -46,6 +46,8 @@ const convertToOneApiMessages = (messages: UniMessage[] = []) => {
   })
 }
 
+const NEWLINE_REGEXP = /\r\n|[\n\r\x0b\x0c\x1c\x1d\x1e\x85\u2028\u2029]/g;
+
 class OneApiResponse extends Stream {
   constructor(client: OneApiProvider, options: UniOptions) {
     super();
@@ -71,16 +73,24 @@ class OneApiResponse extends Stream {
         headers, validateStatus: (_) => true,
         responseType: 'stream'
       });
+      let done = false;
       res.data.on('data', (buf: Buffer) => {
-        const chunksString = new TextDecoder('utf-8').decode(buf)
-          .split('data:').map(c => c.trim()).filter(c => c);
-        for (const chunkString of chunksString) {
+        const chunks = new TextDecoder('utf-8').decode(buf).split(NEWLINE_REGEXP).map(c => c.replace(/data\:/, '').trim());
+        for (const _chunk of chunks) {
+          if (done) continue;
           try {
-            const chunk = JSON.parse(chunkString) as ChatResponseChunk;
+            if (_chunk.startsWith('[DONE]')) {
+              done = true;
+              continue;
+            }
+            if (!_chunk) continue;
+            const chunk = JSON.parse(_chunk) as ChatResponseChunk;
             const content = chunk.choices[0]?.delta?.content;
             if (content === undefined) continue;
             stream.write(content);
-          } catch {}
+          } catch (e) {
+            console.error(e);
+          }
         }
       })
       res.data.on('error', (e: any) => {
