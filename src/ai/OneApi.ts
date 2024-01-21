@@ -52,8 +52,9 @@ class OneApiResponse extends Stream {
   constructor(client: OneApiProvider, options: UniOptions) {
     super();
     (async (stream: OneApiResponse) => {
+      let DONE = false;
       const url = `${client.host}/v1/chat/completions`;
-      const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${client.key}` };
+      const decoder = new TextDecoder('utf8');
       const {
         messages,
         model = client.defaultModel,
@@ -62,43 +63,55 @@ class OneApiResponse extends Stream {
         topK: top_k,
         disableTopK = /^gpt[-_]?3$/i.test(model),
       } = options;
-      const res = await axios.post(url, {
-        messages: convertToOneApiMessages(messages),
-        model,
-        temperature,
-        top_p,
-        top_k: disableTopK ? undefined : top_k,
-        stream: true,
-      }, {
-        headers, validateStatus: (_) => true,
-        responseType: 'stream'
+      const res = await fetch(url, {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: convertToOneApiMessages(messages),
+          model,
+          temperature,
+          top_p,
+          top_k: disableTopK ? undefined : top_k,
+          stream: true,
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${client.key}`
+        },
       });
-      let done = false;
-      res.data.on('data', (buf: Buffer) => {
-        const chunks = new TextDecoder('utf-8').decode(buf).split(NEWLINE_REGEXP).map(c => c.replace(/data\:/, '').trim());
-        for (const _chunk of chunks) {
-          if (done) continue;
+      if (!res.body) throw new Error('No response body');
+      const reader = res.body.getReader();
+      try {
+        while (true) {
           try {
-            if (_chunk.startsWith('[DONE]')) {
-              done = true;
-              continue;
+            const { value, done } = await reader.read();
+            if (done) break;
+            const chunks = decoder.decode(value)
+              .split(NEWLINE_REGEXP)
+              .map(c => c.replace(/data:/, '').trim());
+            for (const _chunk of chunks) {
+              if (DONE) continue;
+              try {
+                if (_chunk.startsWith('[DONE]')) {
+                  DONE = true;
+                  continue;
+                }
+                if (!_chunk) continue;
+                const chunk = JSON.parse(_chunk) as ChatResponseChunk;
+                const content = chunk.choices[0]?.delta?.content;
+                if (content) stream.write(content);
+              } catch (e) {
+                console.error(e);
+              }
             }
-            if (!_chunk) continue;
-            const chunk = JSON.parse(_chunk) as ChatResponseChunk;
-            const content = chunk.choices[0]?.delta?.content;
-            if (content === undefined) continue;
-            stream.write(content);
           } catch (e) {
-            console.error(e);
+            console.error(`Failed to parse chunk${e instanceof Error ? ': ' + e.message : ''}`);
           }
         }
-      })
-      res.data.on('error', (e: any) => {
-        stream.error(e);
-      });
-      res.data.on('end', () => {
+      } catch (e) {
+        stream.error();
+      } finally {
         stream.end();
-      });
+      }
     })(this);
   }
 }
