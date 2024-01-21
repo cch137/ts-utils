@@ -10,12 +10,12 @@ class SuperProvider<Providers extends {[model: string]: BaseProvider}> {
 
   ask(options: UniOptions, model?: keyof Providers): BaseProviderResponse
   ask(question: string, model?: keyof Providers): BaseProviderResponse
-  ask(options: UniOptions | string, model?: keyof Providers) {
-    return this.providers[model || this.defaultModel].ask({
-      model: model ? model.toString() : undefined,
-      ...(typeof options === 'string'
-        ? {messages: [{role: 'role', text: options}]}
-        : options as UniOptions)
+  ask(options: UniOptions | string, _defaultModel?: keyof Providers) {
+    if (typeof options === 'string') return this.ask({messages: [{role: 'role', text: options}]}, _defaultModel);
+    const model = (options.model || _defaultModel || this.defaultModel).toString();
+    return this.providers[model].ask({
+      model,
+      ...options
     });
   }
 }
