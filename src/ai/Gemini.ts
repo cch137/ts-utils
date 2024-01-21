@@ -100,7 +100,7 @@ class GeminiResponse extends Stream {
           }
         }
       } catch (e) {
-        stream.error()
+        stream.error(e)
       } finally {
         stream.end()
       }
