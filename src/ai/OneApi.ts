@@ -71,7 +71,7 @@ class OneApiResponse extends Stream {
           temperature,
           top_p,
           top_k: disableTopK ? undefined : top_k,
-          straem: true,
+          stream: true,
         }),
         headers: {
           'Content-Type': 'application/json',
@@ -97,12 +97,9 @@ class OneApiResponse extends Stream {
                 }
                 if (!_chunk) continue;
                 const chunk = JSON.parse(_chunk) as ChatResponseChunk;
-                console.log(chunk);
                 const content = chunk.choices[0]?.delta?.content;
                 if (content) stream.write(content);
-              } catch (e) {
-                console.error(e);
-              }
+              } catch {}
             }
           } catch (e) {
             console.error(`Failed to parse chunk${e instanceof Error ? ': ' + e.message : ''}`);
