@@ -5,7 +5,7 @@ type StoreListener<T> = (o: T, k?: keyof T, v?: any) => any;
 type StoreType<T> = T & {
   $on: (callback: StoreListener<T>) => void;
   $off: (callback: StoreListener<T>) => void;
-  $restructed: T
+  readonly $object: T;
 }
 
 class StoreChangeEvent<T, K = keyof T, V = any> extends Event {
@@ -22,8 +22,9 @@ class StoreChangeEvent<T, K = keyof T, V = any> extends Event {
 
 const checkStoreOriginalObject = (data: object) => {
   const keys = Object.keys(data);
-  if (keys.includes('$on')) throw new Error('Store original object cannot have "$on" key')
-  if (keys.includes('$off')) throw new Error('Store original object cannot have "$off" key')
+  for (const reserved of ['$on', '$off', '$object']) {
+    if (keys.includes('$on')) throw new Error(`Store original object cannot have "${reserved}" key`);
+  }
 }
 
 const store = <T extends object>(data: T): StoreType<T> => {
@@ -35,12 +36,12 @@ const store = <T extends object>(data: T): StoreType<T> => {
     get(target: T, key: keyof StoreType<T>) {
       if (key === '$on') return $on;
       if (key === '$off') return $off;
-      if (key === '$restructed') return {...target};
+      if (key === '$object') return {...target};
       return target[key];
     },
     // @ts-ignore
     set(target: T, key: keyof T, value) {
-      target[key] = value;
+      data = {...target, key: value};
       et.dispatchEvent(new StoreChangeEvent(proxy, key, value));
       return true;
     },
@@ -64,6 +65,7 @@ const store = <T extends object>(data: T): StoreType<T> => {
 export type {
   StoreType,
   StoreListener,
+  store,
 }
 
 export default store;
