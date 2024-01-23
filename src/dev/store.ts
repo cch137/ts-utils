@@ -32,16 +32,14 @@ const store = <T extends object>(data: T): StoreType<T> => {
   const et = new EventTarget();
   const listners = new Map<StoreListener<T>, (e: Event) => Promise<void>>();
   const proxy: StoreType<T> = new Proxy(data, {
-    // @ts-ignore
-    get(target: T, key: keyof StoreType<T>) {
+    get(target, key) {
       if (key === '$on') return $on;
       if (key === '$off') return $off;
       if (key === '$object') return {...target};
-      return target[key];
+      return (target as T)[key as keyof T];
     },
-    // @ts-ignore
-    set(target: T, key: keyof T, value) {
-      target[key] = value;
+    set(target, key, value) {
+      (target as T)[key as keyof T] = value;
       et.dispatchEvent(new StoreChangeEvent(proxy.$object, key, value));
       return true;
     },
