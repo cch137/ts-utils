@@ -23,7 +23,12 @@ class StoreChangeEvent<T, K = keyof T, V = any> extends Event {
   }
 }
 
-const store = <T extends object>(data: T): StoreType<T> => {
+export type {
+  StoreType,
+  StoreListener,
+}
+
+export default function store<T extends object>(data: T) {
   const et = new EventTarget();
   const listners = new Map<StoreListener<T>, (e: Event) => Promise<void>>();
   const $on = (callback: StoreListener<T>) => {
@@ -63,10 +68,3 @@ const store = <T extends object>(data: T): StoreType<T> => {
   }) as any;
   return proxy;
 };
-
-export type {
-  StoreType,
-  StoreListener,
-}
-
-export default store;
