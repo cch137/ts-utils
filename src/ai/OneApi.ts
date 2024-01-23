@@ -1,6 +1,5 @@
 import Stream from '../stream'
 import type { BaseProvider, UniMessage, UniOptions, BaseProviderResponse } from './types';
-import axios from 'axios'
 
 type OneApiMessage = {
   role: 'system' | 'user' | 'assistant';
