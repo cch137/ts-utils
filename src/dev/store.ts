@@ -67,7 +67,6 @@ const store = <T extends object>(data: T): StoreType<T> => {
 export type {
   StoreType,
   StoreListener,
-  store,
 }
 
 export default store;
