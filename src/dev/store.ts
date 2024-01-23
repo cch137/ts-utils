@@ -5,9 +5,7 @@ type StoreListener<T> = (o: T, p: StoreType<T>, k: keyof T, v: any) => any;
 type StoreType<T> = T & {
   $on: (callback: StoreListener<T>) => () => void;
   $off: (callback: StoreListener<T>) => void;
-  $trigger: () => void;
-  $lock: () => void;
-  $unlock: () => void;
+  $assign: (o: {[key in keyof T]: any}) => void;
   readonly $object: T;
 }
 
@@ -42,25 +40,23 @@ const store = <T extends object>(data: T): StoreType<T> => {
     listners.delete(callback);
     if (wrappedCallback) et.removeEventListener(CHANGE, wrappedCallback);
   }
-  const $trigger = (key?: keyof T, value?: any) => {
-    et.dispatchEvent(new StoreChangeEvent(proxy, key, value));
+  const $assign = (obj: {[key in keyof T]: any}) => {
+    Object.assign(data, obj);
+    et.dispatchEvent(new StoreChangeEvent(proxy));
   }
-  let autoTrigger = true;
   const proxy: StoreType<T> = new Proxy(data, {
     get(target, key) {
       switch (key) {
         case '$on': return $on;
         case '$off': return $off;
-        case '$trigger': return $trigger;
+        case '$assign': return $assign;
         case '$object': return {...target};
-        case '$lock': return () => autoTrigger = false;
-        case '$unlock': return () => autoTrigger = true;
       }
       return (target as T)[key as keyof T];
     },
     set(target, key, value) {
       (target as T)[key as keyof T] = value;
-      if (autoTrigger) $trigger(key as keyof T, value);
+      et.dispatchEvent(new StoreChangeEvent(proxy, key, value));
       return true;
     },
   }) as any;
