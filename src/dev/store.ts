@@ -3,7 +3,7 @@ const CHANGE = 'change';
 type StoreListener<T> = (o: T, k: keyof T, v: any) => any;
 
 type StoreType<T> = T & {
-  $on: (callback: StoreListener<T>) => void;
+  $on: (callback: StoreListener<T>) => () => void;
   $off: (callback: StoreListener<T>) => void;
   readonly $object: T;
 }
@@ -53,6 +53,7 @@ const store = <T extends object>(data: T): StoreType<T> => {
     }
     listners.set(callback, wrappedCallback);
     et.addEventListener(CHANGE, wrappedCallback);
+    return () => $off(callback);
   }
   const $off = (callback: StoreListener<T>) => {
     const wrappedCallback = listners.get(callback);
