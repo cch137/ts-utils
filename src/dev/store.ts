@@ -5,7 +5,7 @@ type StoreListener<T> = (o: T, p: StoreType<T>, k: keyof T, v: any) => any;
 type StoreType<T> = T & {
   readonly $on: (callback: StoreListener<T>) => () => void;
   readonly $off: (callback: StoreListener<T>) => void;
-  readonly $assign: (o: {[key in keyof T]: any}) => void;
+  readonly $assign: (o?: {[key in keyof T]: any}) => void;
   readonly $object: T;
 }
 
@@ -40,7 +40,8 @@ const store = <T extends object>(data: T): StoreType<T> => {
     listners.delete(callback);
     if (wrappedCallback) et.removeEventListener(CHANGE, wrappedCallback);
   }
-  const $assign = (obj: {[key in keyof T]: any}) => {
+  const $assign = (obj?: {[key in keyof T]: any}) => {
+    if (!obj) return;
     Object.assign(data, obj);
     et.dispatchEvent(new StoreChangeEvent(proxy));
   }
