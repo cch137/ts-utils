@@ -1,6 +1,6 @@
 const CHANGE = 'change';
 
-type StoreListener<T> = (o: T, k?: keyof T, v?: any) => any;
+type StoreListener<T> = (o: T, k: keyof T, v: any) => any;
 
 type StoreType<T> = T & {
   $on: (callback: StoreListener<T>) => void;
@@ -41,15 +41,15 @@ const store = <T extends object>(data: T): StoreType<T> => {
     },
     // @ts-ignore
     set(target: T, key: keyof T, value) {
-      data = {...target, key: value};
-      et.dispatchEvent(new StoreChangeEvent(proxy, key, value));
+      target[key] = value;
+      et.dispatchEvent(new StoreChangeEvent(proxy.$object, key, value));
       return true;
     },
   }) as any;
   const $on = (callback: StoreListener<T>) => {
     const wrappedCallback = async (e: Event | StoreChangeEvent<T>) => {
-      if (e instanceof StoreChangeEvent) callback(data, e.key, e.value);
-      else callback(data);
+      if (!(e instanceof StoreChangeEvent)) throw new Error(`Dispatched event is not a instance of ${StoreChangeEvent}`);
+      callback(e.object, e.key, e.value);
     }
     listners.set(callback, wrappedCallback);
     et.addEventListener(CHANGE, wrappedCallback);
