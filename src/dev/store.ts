@@ -5,6 +5,7 @@ type StoreListener<T> = (o: T, k?: keyof T, v?: any) => any;
 type StoreType<T> = T & {
   $on: (callback: StoreListener<T>) => void;
   $off: (callback: StoreListener<T>) => void;
+  $restructed: T
 }
 
 class StoreChangeEvent<T, K = keyof T, V = any> extends Event {
@@ -31,9 +32,10 @@ const store = <T extends object>(data: T): StoreType<T> => {
   const listners = new Map<StoreListener<T>, (e: Event) => Promise<void>>();
   const proxy: StoreType<T> = new Proxy(data, {
     // @ts-ignore
-    get(target: T, key: keyof T) {
+    get(target: T, key: keyof StoreType<T>) {
       if (key === '$on') return $on;
       if (key === '$off') return $off;
+      if (key === '$restructed') return {...target};
       return target[key];
     },
     // @ts-ignore
