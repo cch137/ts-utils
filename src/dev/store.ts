@@ -3,9 +3,9 @@ const CHANGE = 'change';
 type StoreListener<T> = (o: T, p: StoreType<T>, k: keyof T, v: any) => any;
 
 type StoreType<T> = T & {
-  $on: (callback: StoreListener<T>) => () => void;
-  $off: (callback: StoreListener<T>) => void;
-  $assign: (o: {[key in keyof T]: any}) => void;
+  readonly $on: (callback: StoreListener<T>) => () => void;
+  readonly $off: (callback: StoreListener<T>) => void;
+  readonly $assign: (o: {[key in keyof T]: any}) => void;
   readonly $object: T;
 }
 
