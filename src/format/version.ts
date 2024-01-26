@@ -1,6 +1,6 @@
 type part = string | number;
 
-type VersionLike = string | Version | number[] | string[];
+type VersionLike = string | Version | part[];
 
 export const parse = (s?: VersionLike) => new Version(s);
 
@@ -34,7 +34,7 @@ export class Version {
 
   toString() {
     if (this.length === 0) return '';
-    return [this.major, this.minor, this.patch, ...this.details].map(s => s ? s.toString(): '').join('.');
+    return [this.major, this.minor, this.patch, ...this.details].map(s => s.toString()).join('.');
   }
 
   eq(v: VersionLike) {
