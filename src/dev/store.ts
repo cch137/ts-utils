@@ -2,20 +2,20 @@ import type { Partial, None } from '../types';
 
 const CHANGE = 'change';
 
-type StoreListener<T> = (o: T, p: StoreType<T>, k: keyof T, v: any) => any;
+export type StoreListener<T> = (o: T, p: StoreType<T>, k: keyof T, v: any) => any;
 
-type StoreAssignSetter<T> = (o: T, p: StoreType<T>) => None | Partial<T>;
+export type StoreAssignSetter<T> = (o: T, p: StoreType<T>) => None | Partial<T>;
 
-type StoreUpdateGetter<T> = () => None | Partial<T> | Promise<None | Partial<T>>;
+export type StoreUpdateGetter<T> = () => None | Partial<T> | Promise<None | Partial<T>>;
 
-type StoreType<T> = T & {
+export type StoreType<T> = T & {
   readonly $on: (callback: StoreListener<T>) => () => void;
   readonly $off: (callback: StoreListener<T>) => void;
   readonly $assign: (o?: Partial<T> | StoreAssignSetter<T>, dispatch?: boolean) => void;
   readonly $object: T;
 }
 
-type StoreExtObject<T> = T & {
+export type StoreExtObject<T> = T & {
   readonly $init: () => Promise<StoreExtType<T>>;
   readonly $update: () => Promise<StoreExtType<T>>;
   readonly $inited: boolean;
@@ -25,21 +25,13 @@ type StoreExtObject<T> = T & {
   $updateInterval: number;
 }
 
-type StoreExtType<T> = StoreType<T> & StoreType<StoreExtObject<T>>;
+export type StoreExtType<T> = StoreType<T> & StoreType<StoreExtObject<T>>;
 
-type StoreOptions = {
+export type StoreOptions = {
   /** Default value of `autoInit` is `true`. */
   autoInit?: boolean;
   /** If the `updateInterval`(ms) is not provided, the store will not update automatically. */
   updateInterval?: number;
-}
-
-export type {
-  StoreListener,
-  StoreUpdateGetter,
-  StoreType,
-  StoreExtType,
-  StoreOptions,
 }
 
 class StoreChangeEvent<T, K = keyof T, V = any> extends Event {
@@ -125,14 +117,14 @@ function store<T extends object>(
 
   const proxyExt: StoreExtType<T> = proxy as StoreExtType<T>;
   let _timeout: NodeJS.Timeout;
-  let _initPromise: Promise<StoreExtType<T>>;
+  let _initingWait: Promise<StoreExtType<T>>;
 
   const $init = async () => {
+    if (proxyExt.$initing) return await _initingWait;
     if (proxyExt.$inited) return proxyExt;
-    if (proxyExt.$initing) return await _initPromise;
     proxyExt.$assign({$initing: true});
-    _initPromise = $update();
-    await _initPromise;
+    _initingWait = $update();
+    await _initingWait;
     proxyExt.$assign({$initing: false, $inited: true});
     return proxyExt;
   }
@@ -171,4 +163,5 @@ function store<T extends object>(
   return proxyExt;
 };
 
+export { store };
 export default store;

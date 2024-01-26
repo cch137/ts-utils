@@ -3,19 +3,22 @@ type part = string | number;
 export const parse = (s?: string) => new Version(s);
 
 export class Version {
-  major?: part;
-  minor?: part;
-  patch?: part;
+  readonly length: number;
+  major: number;
+  minor: number;
+  patch: number;
   details: part[];
   constructor(s: string = '') {
-    const [major, minor, patch, ...details] = s.split('.');
-    this.major = major;
-    this.minor = minor;
-    this.patch = patch;
+    const parts = s.split('.');
+    const [major=0, minor=0, patch=0, ...details] = parts;
+    this.length = parts.length;
+    this.major = Number(major);
+    this.minor = Number(minor);
+    this.patch = Number(patch);
     this.details = details;
   }
   toString() {
-    if (!this.major && !this.minor && !this.patch) return '';
+    if (this.length === 0) return '';
     return [this.major, this.minor, this.patch, ...this.details].map(s => s ? s.toString(): '').join('.');
   }
   static parse = parse;
