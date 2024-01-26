@@ -65,7 +65,7 @@ class RateLimiter extends Map<string, RateLimiterUser> {
   }
 
   check(name: string): RateLimiterResponse {
-    if (!this.has(name)) return { success: true }
+    this.log(name);
     const user = this.user(name)
     const now = Date.now()
     if (this.#lastUpdated + checkExpireFrequencyMs < now) {
