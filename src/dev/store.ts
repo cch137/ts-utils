@@ -4,7 +4,7 @@ const CHANGE = 'change';
 
 type StoreListener<T> = (o: T, p: StoreType<T>, k: keyof T, v: any) => any;
 
-type StoreUpdateGetter<T> = () => Partial<T> | Promise<Partial<T>>;
+type StoreUpdateGetter<T> = () => void | Partial<T> | Promise<void> | Promise<Partial<T>>;
 
 type StoreType<T> = T & {
   readonly $on: (callback: StoreListener<T>) => () => void;
@@ -122,7 +122,7 @@ function store<T extends object>(
       clearTimeout(_timeout);
       proxyExt.$assign({$updating: true});
       const part = await updateGetter();
-      proxyExt.$assign(part);
+      if (part) proxyExt.$assign(part);
     } catch (e) {
       console.error(e)
     } finally {
