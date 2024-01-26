@@ -28,7 +28,7 @@ export type StoreExtObject<T> = T & {
 export type StoreExtType<T> = StoreType<StoreExtObject<T>>;
 
 export type StoreOptions = {
-  /** Default value of `autoInit` is `true`. */
+  /** Default value of `autoInit` is `false`. */
   autoInit?: boolean;
   /** If the `updateInterval`(ms) is not provided, the store will not update automatically. */
   updateInterval?: number;
