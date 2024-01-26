@@ -22,7 +22,7 @@ export class Version {
     const parts = Array.isArray(v)
       ? v
       : typeof v === 'string'
-        ? v.split('.')
+        ? v ? [] : v.split('.')
         : [v.major, v.minor, v.patch, ...v.details];
     const [major=0, minor=0, patch=0, ...details] = parts;
     this.length = Array.isArray(v) ? v.length : parts.length;
