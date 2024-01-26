@@ -1,12 +1,46 @@
+import type { Partial } from '../types';
+
 const CHANGE = 'change';
 
 type StoreListener<T> = (o: T, p: StoreType<T>, k: keyof T, v: any) => any;
 
+type StoreUpdateGetter<T> = () => Partial<T> | Promise<Partial<T>>;
+
 type StoreType<T> = T & {
   readonly $on: (callback: StoreListener<T>) => () => void;
   readonly $off: (callback: StoreListener<T>) => void;
-  readonly $assign: (o?: {[key in keyof T]?: any}) => void;
+  readonly $assign: (o?: Partial<T>, dispatch?: boolean) => void;
   readonly $object: T;
+}
+
+type StoreExtObject<T> = T & {
+  readonly $init: () => Promise<StoreExtType<T>>;
+  readonly $update: () => Promise<StoreExtType<T>>;
+  readonly $inited: boolean;
+  readonly $initing: boolean;
+  readonly $updating: boolean;
+  readonly $lastUpdated: Date;
+  $updateInterval: number;
+}
+
+type StoreExtType<T> = StoreType<T> & StoreExtObject<T> & {
+  readonly $assign: (o?: Partial<StoreExtObject<T>>, dispatch?: boolean) => void;
+  readonly $object: StoreExtObject<T>;
+}
+
+type StoreOptions = {
+  /** Default value of `autoInit` is `true`. */
+  autoInit?: boolean;
+  /** If the `updateInterval`(ms) is not provided, the store will not update automatically. */
+  updateInterval?: number;
+}
+
+export type {
+  StoreListener,
+  StoreUpdateGetter,
+  StoreType,
+  StoreExtType,
+  StoreOptions,
 }
 
 class StoreChangeEvent<T, K = keyof T, V = any> extends Event {
@@ -23,12 +57,19 @@ class StoreChangeEvent<T, K = keyof T, V = any> extends Event {
   }
 }
 
-export type {
-  StoreType,
-  StoreListener,
-}
-
-export default function store<T extends object>(data: T) {
+function store<T extends object>(
+  data: T
+): StoreType<T>;
+function store<T extends object>(
+  data: T,
+  updateGetter: StoreUpdateGetter<T>,
+  options?: StoreOptions
+): StoreExtType<T>;
+function store<T extends object>(
+  data: T,
+  updateGetter?: StoreUpdateGetter<T>,
+  options: StoreOptions = {}
+) {
   const et = new EventTarget();
   const listners = new Map<StoreListener<T>, (e: Event) => Promise<void>>();
   const $on = (callback: StoreListener<T>) => {
@@ -45,10 +86,10 @@ export default function store<T extends object>(data: T) {
     listners.delete(callback);
     if (wrappedCallback) et.removeEventListener(CHANGE, wrappedCallback);
   }
-  const $assign = (obj?: {[k in keyof T]?: any}) => {
+  const $assign = (obj?: {[k in keyof T]?: any}, dispatch = true) => {
     if (!obj) return;
     Object.assign(data, obj);
-    et.dispatchEvent(new StoreChangeEvent(proxy));
+    if (dispatch) et.dispatchEvent(new StoreChangeEvent(proxy));
   }
   const proxy: StoreType<T> = new Proxy(data, {
     get(target, key) {
@@ -65,6 +106,46 @@ export default function store<T extends object>(data: T) {
       et.dispatchEvent(new StoreChangeEvent(proxy, key, value));
       return true;
     },
-  }) as any;
-  return proxy;
+  }) as StoreType<T>;
+  if (!updateGetter) return proxy;
+  const proxyExt: StoreExtType<T> = proxy as StoreExtType<T>;
+  let _timeout: NodeJS.Timeout;
+  const $init = async () => {
+    if (proxyExt.$inited) return proxyExt;
+    proxyExt.$assign({$initing: true});
+    await $update();
+    proxyExt.$assign({$initing: false, $inited: true});
+    return proxyExt;
+  }
+  const $update = async () => {
+    try {
+      clearTimeout(_timeout);
+      proxyExt.$assign({$updating: true});
+      const part = await updateGetter();
+      proxyExt.$assign(part);
+    } catch (e) {
+      console.error(e)
+    } finally {
+      proxyExt.$assign({$updating: false, $lastUpdated: new Date});
+      if (proxyExt.$updateInterval !== undefined) {
+        _timeout = setTimeout($update, proxyExt.$updateInterval);
+      }
+    }
+    return proxyExt;
+  }
+  proxy.$assign({
+    $init,
+    $update,
+    $inited: false,
+    $initing: false,
+    $updating: false,
+    $lastUpdated: new Date,
+    $updateInterval: options.updateInterval,
+  } as StoreExtObject<T>, false);
+  if (options.autoInit) $init();
+  delete options.autoInit;
+  delete options.updateInterval;
+  return proxyExt;
 };
+
+export default store;
