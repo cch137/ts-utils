@@ -1,5 +1,7 @@
 import type { Partial, None } from '../types';
 
+const ON = 'on';
+const OFF = 'off';
 const CHANGE = 'change';
 
 export type StoreListener<T> = (o: T, p: StoreType<T>, k: keyof T, v: any) => any;
@@ -28,8 +30,10 @@ export type StoreExtObject<T> = T & {
 export type StoreExtType<T> = StoreType<StoreExtObject<T>>;
 
 export type StoreOptions = {
-  /** Default value of `autoInit` is `false`. */
+  /** Default value of `autoInit` is `false`. Initialize when the store instance is created. */
   autoInit?: boolean;
+  /** Initialize when the `$on` called. */
+  initAfterOn?: boolean;
   /** If the `updateInterval`(ms) is not provided, the store will not update automatically. */
   updateInterval?: number;
 }
@@ -72,6 +76,7 @@ function store<T extends object>(
     }
     listners.set(callback, wrappedCallback);
     et.addEventListener(CHANGE, wrappedCallback);
+    et.dispatchEvent(new Event(ON));
     return () => $off(callback);
   }
 
@@ -79,6 +84,7 @@ function store<T extends object>(
     const wrappedCallback = listners.get(callback);
     listners.delete(callback);
     if (wrappedCallback) et.removeEventListener(CHANGE, wrappedCallback);
+    et.dispatchEvent(new Event(OFF));
   }
 
   const $assign = (obj?: Partial<T> | StoreAssignSetter<T>, dispatch = true) => {
@@ -157,6 +163,7 @@ function store<T extends object>(
   }, false);
 
   if (options.autoInit) $init();
+  if (options.initAfterOn) et.addEventListener(ON, () => $init);
   delete options.autoInit;
   delete options.updateInterval;
 
