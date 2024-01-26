@@ -54,19 +54,16 @@ class StoreChangeEvent<T, K = keyof T, V = any> extends Event {
   }
 }
 
-function store<T extends object>(
-  data: T
-): StoreType<T>;
-function store<T extends object>(
-  data: T,
-  updateGetter: StoreUpdateGetter<T>,
-  options?: StoreOptions
-): StoreExtType<T>;
+function store<T extends Array<I>, I>(data: T): StoreType<T>;
+function store<T extends object>(data: T): StoreType<T>;
+function store<T extends Array<I>, I>(data: T, updateGetter: StoreUpdateGetter<T>, options?: StoreOptions): StoreExtType<T>;
+function store<T extends object>(data: T, updateGetter: StoreUpdateGetter<T>, options?: StoreOptions): StoreExtType<T>;
 function store<T extends object>(
   data: T,
   updateGetter?: StoreUpdateGetter<T>,
   options: StoreOptions = {}
 ) {
+  const isArray = Array.isArray(data);
   const et = new EventTarget();
   const listners = new Map<StoreListener<T>, (e: Event) => Promise<void>>();
   const $on = (callback: StoreListener<T>) => {
@@ -85,7 +82,14 @@ function store<T extends object>(
   }
   const $assign = (obj?: {[k in keyof T]?: any}, dispatch = true) => {
     if (!obj) return;
-    Object.assign(data, obj);
+    if (Array.isArray(obj) && isArray) {
+      console.log('splice');
+      data.splice(0, data.length);
+      console.log('push');
+      data.push(...obj);
+    } else {
+      Object.assign(data, obj);
+    }
     if (dispatch) et.dispatchEvent(new StoreChangeEvent(proxy));
   }
   const proxy: StoreType<T> = new Proxy(data, {
@@ -94,7 +98,7 @@ function store<T extends object>(
         case '$on': return $on;
         case '$off': return $off;
         case '$assign': return $assign;
-        case '$object': return {...target};
+        case '$object': return isArray ? [...target as Array<any>] : {...target};
       }
       return (target as T)[key as keyof T];
     },
