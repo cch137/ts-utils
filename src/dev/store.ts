@@ -1,10 +1,10 @@
-import type { Partial } from '../types';
+import type { Partial, None } from '../types';
 
 const CHANGE = 'change';
 
 type StoreListener<T> = (o: T, p: StoreType<T>, k: keyof T, v: any) => any;
 
-type StoreUpdateGetter<T> = () => void | Partial<T> | Promise<void> | Promise<Partial<T>>;
+type StoreUpdateGetter<T> = () => None | Partial<T> | Promise<None> | Promise<Partial<T>>;
 
 type StoreType<T> = T & {
   readonly $on: (callback: StoreListener<T>) => () => void;
