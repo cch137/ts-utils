@@ -25,7 +25,7 @@ export class Version {
         ? v.split('.')
         : [v.major, v.minor, v.patch, ...v.details];
     const [major=0, minor=0, patch=0, ...details] = parts;
-    this.length = parts.length;
+    this.length = Array.isArray(v) ? v.length : parts.length;
     this.major = Number(major);
     this.minor = Number(minor);
     this.patch = Number(patch);
