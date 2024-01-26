@@ -11,7 +11,7 @@ export type StoreUpdateGetter<T> = () => None | Partial<T> | Promise<None | Part
 export type StoreType<T> = T & {
   readonly $on: (callback: StoreListener<T>) => () => void;
   readonly $off: (callback: StoreListener<T>) => void;
-  readonly $assign: (o?: Partial<T> | StoreAssignSetter<T>, dispatch?: boolean) => void;
+  readonly $assign: (o?: None | Partial<T> | StoreAssignSetter<T>, dispatch?: boolean) => void;
   readonly $object: T;
 }
 
@@ -25,7 +25,7 @@ export type StoreExtObject<T> = T & {
   $updateInterval: number;
 }
 
-export type StoreExtType<T> = StoreType<T> & StoreType<StoreExtObject<T>>;
+export type StoreExtType<T> = StoreType<StoreExtObject<T>>;
 
 export type StoreOptions = {
   /** Default value of `autoInit` is `true`. */
@@ -134,7 +134,7 @@ function store<T extends object>(
       clearTimeout(_timeout);
       proxyExt.$assign({$updating: true});
       const part = await updateGetter();
-      if (part) proxyExt.$assign(part);
+      if (part) proxy.$assign(part);
     } catch (e) {
       console.error(e)
     } finally {
