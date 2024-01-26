@@ -1,35 +1,24 @@
-function parse(s: string) {
-  const [major, minor, patch, ...details] = s.split('.');
-  return {
-    major,
-    minor,
-    patch,
-    details,
-  }
-}
-
 type part = string | number;
 
-function serialize(major?: part, minor?: part, patch?: part, ...details: part[]) {
-  return [major, minor, patch, ...details].map(s => s ? s.toString(): '').join('.');
+export const parse = (s: string) => new Version(s);
+
+export class Version {
+  major?: part;
+  minor?: part;
+  patch?: part;
+  details: part[];
+  constructor(s: string) {
+    const [major, minor, patch, ...details] = s.split('.');
+    this.major = major;
+    this.minor = minor;
+    this.patch = patch;
+    this.details = details;
+  }
+  toString() {
+    if (!this.major && !this.minor && !this.patch) return '';
+    return [this.major, this.minor, this.patch, ...this.details].map(s => s ? s.toString(): '').join('.');
+  }
+  static parse = parse;
 }
 
-type Version = {
-  major?: part,
-  minor?: part,
-  patch?: part,
-  details: part[],
-}
-
-const version = {
-  parse,
-  serialize,
-}
-
-export {
-  parse,
-  serialize,
-  type Version,
-}
-
-export default version;
+export default Version;
