@@ -4,12 +4,14 @@ const CHANGE = 'change';
 
 type StoreListener<T> = (o: T, p: StoreType<T>, k: keyof T, v: any) => any;
 
+type StoreAssignSetter<T> = (o: T, p: StoreType<T>) => None | Partial<T>;
+
 type StoreUpdateGetter<T> = () => None | Partial<T> | Promise<None | Partial<T>>;
 
 type StoreType<T> = T & {
   readonly $on: (callback: StoreListener<T>) => () => void;
   readonly $off: (callback: StoreListener<T>) => void;
-  readonly $assign: (o?: Partial<T>, dispatch?: boolean) => void;
+  readonly $assign: (o?: Partial<T> | StoreAssignSetter<T>, dispatch?: boolean) => void;
   readonly $object: T;
 }
 
@@ -87,8 +89,12 @@ function store<T extends object>(
     if (wrappedCallback) et.removeEventListener(CHANGE, wrappedCallback);
   }
 
-  const $assign = (obj?: {[k in keyof T]?: any}, dispatch = true) => {
+  const $assign = (obj?: Partial<T> | StoreAssignSetter<T>, dispatch = true) => {
     if (!obj) return;
+    if (typeof obj === 'function') {
+      $assign(obj(proxy.$object, proxy));
+      return;
+    }
     if (Array.isArray(obj) && isArray) {
       data.splice(0, data.length);
       data.push(...obj);
