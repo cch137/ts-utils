@@ -23,10 +23,7 @@ type StoreExtObject<T> = T & {
   $updateInterval: number;
 }
 
-type StoreExtType<T> = StoreType<T> & StoreExtObject<T> & {
-  readonly $assign: (o?: Partial<StoreExtObject<T>>, dispatch?: boolean) => void;
-  readonly $object: StoreExtObject<T>;
-}
+type StoreExtType<T> = StoreType<T> & StoreType<StoreExtObject<T>>;
 
 type StoreOptions = {
   /** Default value of `autoInit` is `true`. */
