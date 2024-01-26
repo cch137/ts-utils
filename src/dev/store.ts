@@ -4,7 +4,7 @@ const CHANGE = 'change';
 
 type StoreListener<T> = (o: T, p: StoreType<T>, k: keyof T, v: any) => any;
 
-type StoreUpdateGetter<T> = () => None | Partial<T> | Promise<None> | Promise<Partial<T>> | Promise<None | Partial<T>>;
+type StoreUpdateGetter<T> = () => None | Partial<T> | Promise<None | Partial<T>>;
 
 type StoreType<T> = T & {
   readonly $on: (callback: StoreListener<T>) => () => void;
