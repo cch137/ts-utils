@@ -32,7 +32,7 @@ export class Version {
     this.details = details;
   }
 
-  toString() {
+  stringify() {
     if (this.length === 0) return '';
     return [this.major, this.minor, this.patch, ...this.details].map(s => s.toString()).join('.');
   }
