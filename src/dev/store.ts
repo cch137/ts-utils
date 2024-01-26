@@ -54,6 +54,10 @@ class StoreChangeEvent<T, K = keyof T, V = any> extends Event {
   }
 }
 
+/** 
+ * If `data` is an array, `$assign` will rewrite the entire store when passed an array.
+ * Invoking `$update` and `$init` will also rewrite the store.
+ */
 function store<T extends Array<I>, I>(data: T): StoreType<T>;
 function store<T extends object>(data: T): StoreType<T>;
 function store<T extends Array<I>, I>(data: T, updateGetter: StoreUpdateGetter<T>, options?: StoreOptions): StoreExtType<T>;
@@ -66,6 +70,7 @@ function store<T extends object>(
   const isArray = Array.isArray(data);
   const et = new EventTarget();
   const listners = new Map<StoreListener<T>, (e: Event) => Promise<void>>();
+
   const $on = (callback: StoreListener<T>) => {
     const wrappedCallback = async (e: Event | StoreChangeEvent<T>) => {
       if (!(e instanceof StoreChangeEvent)) throw new Error(`Dispatched event is not a instance of ${StoreChangeEvent}`);
@@ -75,23 +80,24 @@ function store<T extends object>(
     et.addEventListener(CHANGE, wrappedCallback);
     return () => $off(callback);
   }
+
   const $off = (callback: StoreListener<T>) => {
     const wrappedCallback = listners.get(callback);
     listners.delete(callback);
     if (wrappedCallback) et.removeEventListener(CHANGE, wrappedCallback);
   }
+
   const $assign = (obj?: {[k in keyof T]?: any}, dispatch = true) => {
     if (!obj) return;
     if (Array.isArray(obj) && isArray) {
-      console.log('splice');
       data.splice(0, data.length);
-      console.log('push');
       data.push(...obj);
     } else {
       Object.assign(data, obj);
     }
     if (dispatch) et.dispatchEvent(new StoreChangeEvent(proxy));
   }
+
   const proxy: StoreType<T> = new Proxy(data, {
     get(target, key) {
       switch (key) {
@@ -108,10 +114,13 @@ function store<T extends object>(
       return true;
     },
   }) as StoreType<T>;
+
   if (!updateGetter) return proxy;
+
   const proxyExt: StoreExtType<T> = proxy as StoreExtType<T>;
   let _timeout: NodeJS.Timeout;
   let _initPromise: Promise<StoreExtType<T>>;
+
   const $init = async () => {
     if (proxyExt.$inited) return proxyExt;
     if (proxyExt.$initing) return await _initPromise;
@@ -121,6 +130,7 @@ function store<T extends object>(
     proxyExt.$assign({$initing: false, $inited: true});
     return proxyExt;
   }
+
   const $update = async () => {
     try {
       clearTimeout(_timeout);
@@ -137,6 +147,7 @@ function store<T extends object>(
     }
     return proxyExt;
   }
+
   proxy.$assign({
     $init,
     $update,
@@ -146,9 +157,11 @@ function store<T extends object>(
     $lastUpdated: new Date,
     $updateInterval: options.updateInterval,
   } as StoreExtObject<T>, false);
+
   if (options.autoInit) $init();
   delete options.autoInit;
   delete options.updateInterval;
+
   return proxyExt;
 };
 
