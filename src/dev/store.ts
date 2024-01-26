@@ -110,10 +110,13 @@ function store<T extends object>(
   if (!updateGetter) return proxy;
   const proxyExt: StoreExtType<T> = proxy as StoreExtType<T>;
   let _timeout: NodeJS.Timeout;
+  let _initPromise: Promise<any>;
   const $init = async () => {
     if (proxyExt.$inited) return proxyExt;
+    if (proxyExt.$initing) return _initPromise;
     proxyExt.$assign({$initing: true});
-    await $update();
+    _initPromise = $update();
+    await _initPromise;
     proxyExt.$assign({$initing: false, $inited: true});
     return proxyExt;
   }
