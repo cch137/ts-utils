@@ -146,7 +146,7 @@ function store<T extends object>(
     return proxyExt;
   }
 
-  proxy.$assign({
+  proxyExt.$assign({
     $init,
     $update,
     $inited: false,
@@ -154,7 +154,7 @@ function store<T extends object>(
     $updating: false,
     $lastUpdated: new Date,
     $updateInterval: options.updateInterval,
-  } as StoreExtObject<T>, false);
+  }, false);
 
   if (options.autoInit) $init();
   delete options.autoInit;
