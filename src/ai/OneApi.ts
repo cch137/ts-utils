@@ -1,5 +1,6 @@
+import { wrapOptions } from '.';
 import Stream from '../stream'
-import type { BaseProvider, UniMessage, UniOptions, BaseProviderResponse } from './types';
+import type { BaseProvider, UniMessage, UniOptions, BaseProviderResponse, AskInput } from '.';
 
 type OneApiMessage = {
   role: 'system' | 'user' | 'assistant';
@@ -47,7 +48,7 @@ const convertToOneApiMessages = (messages: UniMessage[] = []) => {
 
 const NEWLINE_REGEXP = /\r\n|[\n\r\x0b\x0c\x1c\x1d\x1e\x85\u2028\u2029]/g;
 
-class OneApiResponse extends Stream {
+class OneApiResponse extends Stream implements BaseProviderResponse {
   constructor(client: OneApiProvider, options: UniOptions) {
     super();
     (async (stream: OneApiResponse) => {
@@ -125,13 +126,8 @@ class OneApiProvider implements BaseProvider {
     this.defaultModel = defaultModel;
   }
 
-  ask(options: UniOptions): BaseProviderResponse
-  ask(question: string): BaseProviderResponse
-  ask(options: UniOptions | string) {
-    if (typeof options === 'string') return this.ask({
-      messages: [{ role: 'user', text: options }]
-    });
-    return new OneApiResponse(this, options);
+  ask(options: AskInput) {
+    return new OneApiResponse(this, wrapOptions(options));
   }
 }
 

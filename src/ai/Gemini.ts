@@ -1,5 +1,6 @@
+import { wrapOptions } from '.';
 import Stream from '../stream'
-import type { BaseProvider, UniMessage, UniOptions, BaseProviderResponse } from './types';
+import type { BaseProvider, UniMessage, UniOptions, BaseProviderResponse, AskInput } from '.';
 import type { InputContent, Part } from '@google/generative-ai'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
@@ -60,7 +61,7 @@ const parseInputContents = (
   }
 }
 
-class GeminiResponse extends Stream {
+class GeminiResponse extends Stream implements BaseProviderResponse {
   constructor(
     client: GeminiProvider,
     options: UniOptions,
@@ -134,13 +135,8 @@ class GeminiProvider extends GoogleGenerativeAI implements BaseProvider {
     this.defaultModel = defaultModel;
   }
 
-  ask(options: UniOptions): BaseProviderResponse
-  ask(question: string): BaseProviderResponse
-  ask(options: UniOptions | string) {
-    if (typeof options === 'string') return this.ask({
-      messages: [{ role: 'user', text: options }]
-    });
-    return new GeminiResponse(this, options);
+  ask(options: AskInput) {
+    return new GeminiResponse(this, wrapOptions(options));
   }
 }
 
