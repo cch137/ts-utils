@@ -62,10 +62,10 @@ const tryDefault = (callback: () => boolean, defaultValue: boolean = true) => {
 
 const isHeadless = (
   win: Window = window,
-  doc: Document = document,
-  nav: Navigator = navigator,
   ignorePlatformMismatch: boolean = false
 ) => {
+  if (!win) return {value: false};
+  const {document: doc, navigator: nav} = win;
   /** webdriver 存在（通常無頭瀏覽器 webdriver 都是 true） */
   const wd = tryDefault(() => isWebdriver(nav))
   /** Plugins 異常（無頭瀏覽器沒有 Plugins，例如一些瀏覽器的插件，包括 PDF 查看器） */
@@ -78,7 +78,7 @@ const isHeadless = (
   const cr = tryDefault(() => isChromeErr(win, nav))
   const details = { wd, pg, lg, pf, cr }
   return {
-    valid: !Object.values(details).every(i => !i),
+    value: !Object.values(details).every(i => !i),
     details
   }
 }
