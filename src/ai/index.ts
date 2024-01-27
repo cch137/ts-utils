@@ -27,20 +27,6 @@ export interface BaseProvider {
 
 export interface BaseProviderResponse extends Stream {}
 
-export const wrapMessages = (m: AskInputMsg) => {
-  return Array.isArray(m)
-    ? m
-    : typeof m === 'string'
-      ? [{role: 'user', text: m}]
-      : [m]
-}
-
-export const wrapOptions = (m: AskInput) => {
-  return (typeof m === 'string' || Array.isArray(m) || 'text' in m)
-    ? {messages: wrapMessages(m)}
-    : m
-}
-
 export class SuperProvider<Providers extends {[model: string]: BaseProvider}> {
   readonly providers: Providers;
   get defaultModel(): keyof Providers {return Object.keys(this.providers)[0]}
@@ -65,6 +51,7 @@ export default SuperProvider;
 
 import GeminiProvider from "./Gemini";
 import OneApiProvider from "./OneApi";
+import { wrapOptions } from './utils';
 
 export {
   GeminiProvider,

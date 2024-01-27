@@ -1,4 +1,4 @@
-import { wrapOptions } from '.';
+import { wrapOptions } from './utils';
 import Stream from '../stream'
 import type { BaseProvider, UniMessage, UniOptions, BaseProviderResponse, AskInput } from '.';
 
