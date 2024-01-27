@@ -163,7 +163,7 @@ function store<T extends object>(
   }, false);
 
   if (options.autoInit) $init();
-  if (options.initAfterOn) et.addEventListener(ON, () => $init);
+  if (options.initAfterOn) et.addEventListener(ON, () => $init());
   delete options.autoInit;
   delete options.updateInterval;
 
