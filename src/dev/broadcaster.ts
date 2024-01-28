@@ -32,7 +32,7 @@ export default class Broadcaster<T> {
   }
 
   subscribe(handler: (e: DataEvent<T>) => void) {
-    return () => subscribe(this.name, handler);
+    return () => unsubscribe(this.name, handler);
   }
 
   unsubscribe(handler: (e: DataEvent<T>) => void) {
