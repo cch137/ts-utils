@@ -79,8 +79,8 @@ class GeminiResponse extends Stream implements BaseProviderResponse {
         generationConfig: { maxOutputTokens, temperature, topK, topP }
       });
       let globalError: Error | undefined = undefined
-      const req = await chat.sendMessageStream(message?.parts || '');
       try {
+        const req = await chat.sendMessageStream(message?.parts || '');
         while (true) {
           const chunk = await req.stream.next()
           if (chunk.done) break;

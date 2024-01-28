@@ -62,29 +62,29 @@ class OneApiResponse extends Stream implements BaseProviderResponse {
     } = options;
     this.model = model;
     (async (stream: OneApiResponse) => {
-      let DONE = false;
-      const controller = new AbortController();
-      const url = `${client.host}/v1/chat/completions`;
-      const decoder = new TextDecoder('utf8');
-      const res = await fetch(url, {
-        method: 'POST',
-        body: JSON.stringify({
-          messages: convertToOneApiMessages(messages),
-          model,
-          temperature,
-          top_p,
-          top_k: disableTopK ? undefined : top_k,
-          stream: true,
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${client.key}`
-        },
-        signal: controller.signal,
-      });
-      if (!res.body) throw new Error('No response body');
-      const reader = res.body.getReader();
       try {
+        let DONE = false;
+        const controller = new AbortController();
+        const url = `${client.host}/v1/chat/completions`;
+        const decoder = new TextDecoder('utf8');
+        const res = await fetch(url, {
+          method: 'POST',
+          body: JSON.stringify({
+            messages: convertToOneApiMessages(messages),
+            model,
+            temperature,
+            top_p,
+            top_k: disableTopK ? undefined : top_k,
+            stream: true,
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${client.key}`
+          },
+          signal: controller.signal,
+        });
+        if (!res.body) throw new Error('No response body');
+        const reader = res.body.getReader();
         let GO = true;
         while (GO) {
           try {
