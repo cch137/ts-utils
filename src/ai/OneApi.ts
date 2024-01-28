@@ -53,6 +53,7 @@ class OneApiResponse extends Stream implements BaseProviderResponse {
     super();
     (async (stream: OneApiResponse) => {
       let DONE = false;
+      const controller = new AbortController();
       const url = `${client.host}/v1/chat/completions`;
       const decoder = new TextDecoder('utf8');
       const {
@@ -77,11 +78,13 @@ class OneApiResponse extends Stream implements BaseProviderResponse {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${client.key}`
         },
+        signal: controller.signal,
       });
       if (!res.body) throw new Error('No response body');
       const reader = res.body.getReader();
       try {
-        while (true) {
+        let GO = true;
+        while (GO) {
           try {
             const { value, done } = await reader.read();
             if (done) break;
@@ -98,7 +101,17 @@ class OneApiResponse extends Stream implements BaseProviderResponse {
                 if (!_chunk) continue;
                 const chunk = JSON.parse(_chunk) as ChatResponseChunk;
                 const content = chunk.choices[0]?.delta?.content;
-                if (content) stream.write(content);
+                if (content) {
+                  try {
+                    stream.write(content);
+                  } catch {
+                    if (stream.done) {
+                      controller.abort();
+                      GO = false;
+                      break;
+                    }
+                  }
+                }
               } catch {}
             }
           } catch (e) {
