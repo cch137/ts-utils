@@ -25,7 +25,9 @@ export interface BaseProvider {
   ask(input: AskInput): BaseProviderResponse;
 }
 
-export interface BaseProviderResponse extends Stream {}
+export interface BaseProviderResponse extends Stream {
+  readonly model: string;
+}
 
 export type SuperProviderResHandler = (res: BaseProviderResponse) => any;
 
@@ -51,7 +53,7 @@ export class SuperProvider<Providers extends {[model: string]: BaseProvider}> {
       model,
       ...options
     });
-    this.#handlers.forEach(async (h) => h(res));
+    this.#handlers.forEach(async (h) => {try{h(res)}catch(e){console.error(e)}});
     return res;
   }
 }

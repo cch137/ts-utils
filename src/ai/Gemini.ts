@@ -56,20 +56,22 @@ const parseInputContents = (
 }
 
 class GeminiResponse extends Stream implements BaseProviderResponse {
+  readonly model: string;
   constructor(
     client: GeminiProvider,
     options: UniOptions,
   ) {
     super();
+    const {
+      model = client.defaultModel,
+      messages,
+      temperature,
+      topK,
+      topP,
+      maxOutputTokens = 8000
+    } = options;
+    this.model = model;
     (async (stream) => {
-      const {
-        model = client.defaultModel,
-        messages,
-        temperature,
-        topK,
-        topP,
-        maxOutputTokens = 8000
-      } = options;
       const { history, message } = parseInputContents(convertToGeminiMessages(messages));
       const genModel = client.getGenerativeModel({ model });
       const chat = genModel.startChat({

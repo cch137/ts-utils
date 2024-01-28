@@ -49,21 +49,23 @@ const convertToOneApiMessages = (messages: UniMessage[] = []) => {
 const NEWLINE_REGEXP = /\r\n|[\n\r\x0b\x0c\x1c\x1d\x1e\x85\u2028\u2029]/g;
 
 class OneApiResponse extends Stream implements BaseProviderResponse {
+  readonly model: string;
   constructor(client: OneApiProvider, options: UniOptions) {
     super();
+    const {
+      messages,
+      model = client.defaultModel,
+      temperature,
+      topP: top_p,
+      topK: top_k,
+      disableTopK = /^gpt[-_]?3/i.test(model),
+    } = options;
+    this.model = model;
     (async (stream: OneApiResponse) => {
       let DONE = false;
       const controller = new AbortController();
       const url = `${client.host}/v1/chat/completions`;
       const decoder = new TextDecoder('utf8');
-      const {
-        messages,
-        model = client.defaultModel,
-        temperature,
-        topP: top_p,
-        topK: top_k,
-        disableTopK = /^gpt[-_]?3/i.test(model),
-      } = options;
       const res = await fetch(url, {
         method: 'POST',
         body: JSON.stringify({
