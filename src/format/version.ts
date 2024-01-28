@@ -47,34 +47,42 @@ export const parse = (v?: VersionLike): VersionObject => {
 
   const gte = (v: VersionLike) => {
     const { major: _1, minor: _2, patch: _3 } = parse(v);
+    if (major > _1) return true;
     if (major < _1) return false;
+    if (minor > _2) return true;
     if (minor < _2) return false;
-    if (patch < _3) return false;
-    return true;
+    if (patch >= _3) return true;
+    return false;
   }
 
   const gt = (v: VersionLike) => {
     const { major: _1, minor: _2, patch: _3 } = parse(v);
-    if (major <= _1) return false;
-    if (minor <= _2) return false;
-    if (patch <= _3) return false;
-    return true;
+    if (major > _1) return true;
+    if (major < _1) return false;
+    if (minor > _2) return true;
+    if (minor < _2) return false;
+    if (patch > _3) return true;
+    return false;
   }
 
   const lte = (v: VersionLike) => {
     const { major: _1, minor: _2, patch: _3 } = parse(v);
+    if (major < _1) return true;
     if (major > _1) return false;
+    if (minor < _2) return true;
     if (minor > _2) return false;
-    if (patch > _3) return false;
-    return true;
+    if (patch <= _3) return true;
+    return false;
   }
 
   const lt = (v: VersionLike) => {
     const { major: _1, minor: _2, patch: _3 } = parse(v);
-    if (major >= _1) return false;
-    if (minor >= _2) return false;
-    if (patch >= _3) return false;
-    return true;
+    if (major < _1) return true;
+    if (major > _1) return false;
+    if (minor < _2) return true;
+    if (minor > _2) return false;
+    if (patch < _3) return true;
+    return false;
   }
 
   return {
