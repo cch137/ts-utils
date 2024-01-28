@@ -27,7 +27,10 @@ export interface BaseProvider {
 
 export interface BaseProviderResponse extends Stream {}
 
+export type SuperProviderResHandler = (res: BaseProviderResponse) => any;
+
 export class SuperProvider<Providers extends {[model: string]: BaseProvider}> {
+  readonly #handlers = new Set<SuperProviderResHandler>();
   readonly providers: Providers;
   get defaultModel(): keyof Providers {return Object.keys(this.providers)[0]}
 
@@ -35,15 +38,21 @@ export class SuperProvider<Providers extends {[model: string]: BaseProvider}> {
     this.providers = providers;
   }
 
+  listen(handler: SuperProviderResHandler) {
+    this.#handlers.add(handler);
+  }
+
   ask(options: UniOptions, model?: keyof Providers): BaseProviderResponse
   ask(question: string, model?: keyof Providers): BaseProviderResponse
   ask(options: UniOptions | string, _defaultModel?: keyof Providers) {
     if (typeof options === 'string') return this.ask(wrapOptions(options), _defaultModel);
     const model = (options.model || _defaultModel || this.defaultModel).toString();
-    return this.providers[model].ask({
+    const res = this.providers[model].ask({
       model,
       ...options
     });
+    this.#handlers.forEach(async (h) => h(res));
+    return res;
   }
 }
 
