@@ -3,6 +3,8 @@ import concentrate from './concentrate'
 // To-Do:
 // 需要判斷數字，因為語句過短，數字過多，可能造成誤判。
 
+export type SupportedLang = 'en' | 'zh' | 'js' | 'ko' | 'ru';
+
 const languageCodeRanges: { [languageCode: string]: [number, number][] } = {
   en: [[0x0000, 0x007F]], // Basic Latin (ASCII)
   zh: [[0x4E00, 0x9FFF], [0x3400, 0x4DBF], [0x20000, 0x2A6DF], [0x2A700, 0x2B73F], [0x2B740, 0x2B81F]], // Chinese
@@ -12,7 +14,7 @@ const languageCodeRanges: { [languageCode: string]: [number, number][] } = {
   // Add more languages and their corresponding Unicode ranges as needed
 }
 
-function analyzeLanguages(text: string, sampleProportion = 0.1, minSampleSize = 100, maxSampleSize = 1000) {
+export function analyzeLanguages(text: string, sampleProportion = 0.1, minSampleSize = 100, maxSampleSize = 1000) {
   const selectedCharacters = concentrate(
     text.replace(/\s/g, ''),
     Math.floor(Math.min(maxSampleSize, Math.max(minSampleSize, text.length * sampleProportion)))
@@ -41,7 +43,7 @@ function analyzeLanguages(text: string, sampleProportion = 0.1, minSampleSize = 
   return languageDistribution;
 }
 
-function analyzeLanguage(text: string, sampleProportion = 0.1, minSampleSize = 100, maxSampleSize = 1000) {
+export function analyzeLanguage(text: string, sampleProportion = 0.1, minSampleSize = 100, maxSampleSize = 1000) {
   const data = analyzeLanguages(text, sampleProportion, minSampleSize, maxSampleSize)
   let language: string | null = null, v = 0
   for (const languageCode in data) {
@@ -50,8 +52,3 @@ function analyzeLanguage(text: string, sampleProportion = 0.1, minSampleSize = 1
   }
   return language || 'en' // default language is en
 }
-
-export {
-  analyzeLanguage,
-  analyzeLanguages
-};
