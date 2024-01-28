@@ -19,7 +19,7 @@ const convertToGeminiMessages = (messages: UniMessage[] = []) => {
   })
 }
 
-const convertPartsToString = (parts: string | (Part | string)[]) => {
+const _convertPartsToString = (parts: string | (Part | string)[]) => {
   if (typeof parts === 'string') return parts
   const texts: string[] = []
   for (const part of parts) {
@@ -30,7 +30,7 @@ const convertPartsToString = (parts: string | (Part | string)[]) => {
 }
 
 const parseInputContents = (
-  _messages: InputContent[],
+  _messages: GeminiMessage[],
   options: { endsWithUser?: boolean, startsWithUser?: boolean } = {}
 ) => {
   const { startsWithUser = true, endsWithUser = true } = options;
@@ -38,18 +38,12 @@ const parseInputContents = (
   let lastRoleIsModel = startsWithUser;
   for (const message of _messages) {
     if (lastRoleIsModel) {
-      if (message.role === 'model') {
-        messages.push({ role: 'user', parts: '' });
-      }
-    } else if (message.role === 'user') {
-      messages.push({ role: 'model', parts: '' });
+      if (message.role === 'model') messages.push({ role: 'user', parts: '' });
+    } else {
+      if (message.role === 'user') messages.push({ role: 'model', parts: '' });
     }
-    messages.push({
-      ...message,
-      parts: convertPartsToString(message.parts),
-      role: lastRoleIsModel ? 'user' : 'model',
-    });
-    lastRoleIsModel = !lastRoleIsModel;
+    messages.push(message);
+    lastRoleIsModel = message.role === 'model';
   }
   if (lastRoleIsModel && endsWithUser) {
     messages.push({ role: 'user', parts: '' });
@@ -111,19 +105,6 @@ class GeminiResponse extends Stream implements BaseProviderResponse {
 }
 
 /**
- * More keys: (leaked from GitHub) \
- * AIzaSyDfGoWenCyM53XsN-AB6dci5dpNxFR-WXg \
- * AIzaSyA_D3B_6BAio2MGZc-asmjh3D_HGXPkLsU \
- * AIzaSyB-axwh7qrTGngrI2qNLgN5YAjCFJ-w0R8 \
- * AIzaSyCsEtcUJS6fwfKgBPyskX0cNvMEN4WgCX4 \
- * AIzaSyAmjtCr0NQusUrodsQp28YHXbjW62_HsYI \
- * AIzaSyAumupRyzuW_e7SBNqJX6debuVF-R9sYPg \
- * AIzaSyCfVTilfnL266zjXh1prQ0zOWK_TSw_YZc \
- * AIzaSyBx8KBsrVk66QvGvAWr1lv6UGe8OyheyOI \
- * AIzaSyAjzOmDK6Vod719KJbKTWShRt_PPpQSY6k \
- * AIzaSyDxRSVebSxc05aCCTPsBxOuQI3OrjewB9I \
- * AIzaSyBUI3iOGqrTZvr8Gf4iVMfgWeulwxqmYuo \
- * ---
  * GeminiBaseUrl: https://generativelanguage.googleapis.com
  */
 
