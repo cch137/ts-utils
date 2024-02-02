@@ -24,7 +24,7 @@ export type StoreExtObject<T> = T & {
   readonly $initing: boolean;
   readonly $updating: boolean;
   readonly $lastUpdated: Date;
-  $updateInterval: number;
+  $updateInterval?: number;
 }
 
 export type StoreExtType<T> = StoreType<StoreExtObject<T>>;
