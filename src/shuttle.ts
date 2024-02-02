@@ -276,7 +276,10 @@ function _packData(value: any): Uint8Array {
       if (typeof value[Symbol?.iterator] === 'function') return packArray(value)
       return packObject(value)
   }
-  throw new Error(`Unsupported Data Type: ${dataType}`)
+  if (!Shuttle.ignoreUnsupportedTypes) {
+    throw new Error(`Unsupported Data Type: ${dataType}`)
+  }
+  return packSpecial(undefined);
 }
 
 function _unpackData(value: Uint8Array | number[], p = new BufferPointer()) {
@@ -353,28 +356,32 @@ function hashData<T>(array: Shuttle<T> | Uint8Array | number[] | string, algorit
   return hash(array, algorithm)
 }
 
-function packDataWithHash<T>(data: T, algorithm: Algorithm, salts: number[]): Shuttle<[string, Shuttle<T>]>
-function packDataWithHash<T>(data: T, algorithm: Algorithm, ...salts: number[]): Shuttle<[string, Shuttle<T>]>
+function packDataWithHash<T>(data: T, algorithm: Algorithm, salts: number[]): HashedShuttle<T>
+function packDataWithHash<T>(data: T, algorithm: Algorithm, ...salts: number[]): HashedShuttle<T>
 function packDataWithHash<T>(data: T, algorithm: Algorithm, ...salts: (number | number[])[]) {
   const array = packData(data)
   const hash = hashData(array, algorithm)
-  return packData<[string, Shuttle<T>]>([hash, array], salts.flat())
+  return packData<ShuttleWithHash<T>>([hash, array], salts.flat())
 }
 
-function unpackDataWithHash<T>(array: Shuttle<[string, Shuttle<T>]> | Uint8Array | number[] | string, algorithm: Algorithm, salts: number[]): T
-function unpackDataWithHash<T>(array: Shuttle<[string, Shuttle<T>]> | Uint8Array | number[] | string, algorithm: Algorithm, ...salts: number[]): T
-function unpackDataWithHash<T>(array: Shuttle<[string, Shuttle<T>]> | Uint8Array | number[] | string, algorithm: Algorithm, ...salts: (number | number[])[]) {
-  const [hash, _array] = unpackData<[string, Shuttle<T>]>(array, salts.flat())
+function unpackDataWithHash<T>(array: HashedShuttle<T> | Uint8Array | number[] | string, algorithm: Algorithm, salts: number[]): T
+function unpackDataWithHash<T>(array: HashedShuttle<T> | Uint8Array | number[] | string, algorithm: Algorithm, ...salts: number[]): T
+function unpackDataWithHash<T>(array: HashedShuttle<T> | Uint8Array | number[] | string, algorithm: Algorithm, ...salts: (number | number[])[]) {
+  const [hash, _array] = unpackData<ShuttleWithHash<T>>(array, salts.flat())
   const correctHash = hashData(_array, algorithm)
   if (hash !== correctHash) throw new Error(`Hash Mismatch: "${hash}" !== "${correctHash}"`)
   return unpackData(_array)
 }
+
+export type ShuttleWithHash<T> = [string, Shuttle<T>]
+export type HashedShuttle<T> = Shuttle<[string, Shuttle<T>]>
 
 class Shuttle<T> extends Uint8Array {
   static load<T>(data: Shuttle<T> | Uint8Array | number[] | string) {
     return new Shuttle<T>(typeof data === 'string' ? asciiToNumbers(data) : data)
   }
 
+  static ignoreUnsupportedTypes = false
   static pack = packData
   static unpack = unpackData
   static packWithHash = packDataWithHash
