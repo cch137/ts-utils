@@ -381,7 +381,7 @@ class Shuttle<T> extends Uint8Array {
     return new Shuttle<T>(typeof data === 'string' ? asciiToNumbers(data) : data)
   }
 
-  static ignoreUnsupportedTypes = false
+  static ignoreUnsupportedTypes = true
   static pack = packData
   static unpack = unpackData
   static packWithHash = packDataWithHash
