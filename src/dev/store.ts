@@ -4,7 +4,7 @@ const ON = 'on';
 const OFF = 'off';
 const CHANGE = 'change';
 
-export type StoreListener<T> = (o: T, p: StoreType<T>, k: keyof T, v: any) => any;
+export type StoreListener<T> = (object: T, proxy: StoreType<T>, keys: readonly (keyof T)[], values: readonly any[]) => any;
 
 export type StoreAssignSetter<T> = (o: T, p: StoreType<T>) => None | Partial<T>;
 
@@ -40,17 +40,17 @@ export type StoreOptions = {
   updateInterval?: number;
 }
 
-class StoreChangeEvent<T, K = keyof T, V = any> extends Event {
+class StoreChangeEvent<T, K = readonly (keyof T)[], V = readonly any[]> extends Event {
   readonly store: StoreType<T>;
   readonly object: T;
-  readonly key?: K;
-  readonly value?: V;
-  constructor(store: StoreType<T>, key?: K, value?: V) {
+  readonly keys: K;
+  readonly values: V;
+  constructor(store: StoreType<T>, keys: K, values: V) {
     super(CHANGE);
     this.store = store;
     this.object = store.$object;
-    this.key = key;
-    this.value = value;
+    this.keys = keys;
+    this.values = values;
   }
 }
 
@@ -74,7 +74,7 @@ function store<T extends object>(
   const $on = (callback: StoreListener<T>) => {
     const wrappedCallback = async (e: Event | StoreChangeEvent<T>) => {
       if (!(e instanceof StoreChangeEvent)) throw new Error(`Dispatched event is not a instance of ${StoreChangeEvent}`);
-      callback(e.object, e.store, e.key, e.value);
+      callback(e.object, e.store, e.keys, e.values);
     }
     listners.set(callback, wrappedCallback);
     et.addEventListener(CHANGE, wrappedCallback);
@@ -95,13 +95,17 @@ function store<T extends object>(
       $assign(obj(proxy.$object, proxy));
       return;
     }
+    const keys = Object.freeze(Object.keys(obj));
+    const values = Object.freeze(Object.values(obj));
     if (Array.isArray(obj) && isArray) {
       data.splice(0, data.length);
       data.push(...obj);
     } else {
       Object.assign(data, obj);
     }
-    if (dispatch) et.dispatchEvent(new StoreChangeEvent(proxy));
+    if (dispatch) {
+      et.dispatchEvent(new StoreChangeEvent(proxy, keys, values));
+    }
   }
 
   const proxy: StoreType<T> = new Proxy(data, {
@@ -116,7 +120,9 @@ function store<T extends object>(
     },
     set(target, key, value) {
       (target as T)[key as keyof T] = value;
-      et.dispatchEvent(new StoreChangeEvent(proxy, key, value));
+      const keys = Object.freeze([key]);
+      const values = Object.freeze([value]);
+      et.dispatchEvent(new StoreChangeEvent(proxy, keys, values));
       return true;
     },
   }) as StoreType<T>;
