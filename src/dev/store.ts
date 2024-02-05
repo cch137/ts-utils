@@ -20,6 +20,7 @@ export type StoreType<T> = T & {
 export type StoreExtObject<T> = T & {
   readonly $init: () => Promise<StoreExtType<T>>;
   readonly $update: () => Promise<StoreExtType<T>>;
+  readonly $lazyUpdate: () => Promise<StoreExtType<T>>;
   readonly $inited: boolean;
   readonly $initing: boolean;
   readonly $updating: boolean;
@@ -160,35 +161,36 @@ function store<T extends object>(
     return proxyExt;
   }
 
+  const {lazyUpdate} = options;
+  const $lazyUpdate = async () => {
+    const {$updateInterval, $lastUpdated, $updating} = proxyExt;
+    if (lazyUpdate && !$updating && $updateInterval !== undefined) {
+      if (Date.now() - $lastUpdated.getTime() > $updateInterval) {
+        return await $update();
+      }
+    }
+    return proxyExt;
+  }
+
   proxyExt.$assign({
     $init,
     $update,
+    $lazyUpdate,
     $inited: false,
     $initing: false,
     $updating: false,
     $lastUpdated: new Date,
     $updateInterval: options.updateInterval,
   }, false);
-
-  const {lazyUpdate} = options;
   if (options.autoInit) $init();
   if (options.initAfterOn) et.addEventListener(ON, async () => {
     await $init();
-    const {$updateInterval, $lastUpdated, $updating} = proxyExt;
-    if (lazyUpdate && !$updating && $updateInterval !== undefined) {
-      if (Date.now() - $lastUpdated.getTime() > $updateInterval) {
-        $update();
-      }
-    }
+    await $lazyUpdate();
   });
-  if (lazyUpdate) et.addEventListener(CHANGE, () => {
-    const {$updateInterval, $lastUpdated, $updating} = proxyExt;
-    if (!$updating && $updateInterval !== undefined) {
-      if (Date.now() - $lastUpdated.getTime() > $updateInterval) {
-        $update();
-      }
-    }
+  if (options.lazyUpdate) et.addEventListener(CHANGE, async () => {
+    await $lazyUpdate();
   });
+
   delete options.autoInit;
   delete options.initAfterOn;
   delete options.updateInterval;
