@@ -34,6 +34,8 @@ export type StoreOptions = {
   autoInit?: boolean;
   /** Initialize when the `$on` called. */
   initAfterOn?: boolean;
+  /** Only check when setter is called, if last updated over update interval, then update. */
+  lazyUpdate?: boolean;
   /** If the `updateInterval`(ms) is not provided, the store will not update automatically. */
   updateInterval?: number;
 }
@@ -145,7 +147,7 @@ function store<T extends object>(
       console.error(e)
     } finally {
       proxyExt.$assign({$updating: false, $lastUpdated: new Date});
-      if (proxyExt.$updateInterval !== undefined) {
+      if (proxyExt.$updateInterval !== undefined && !lazyUpdate) {
         _timeout = setTimeout($update, proxyExt.$updateInterval);
       }
     }
@@ -162,10 +164,29 @@ function store<T extends object>(
     $updateInterval: options.updateInterval,
   }, false);
 
+  const {lazyUpdate} = options;
   if (options.autoInit) $init();
-  if (options.initAfterOn) et.addEventListener(ON, () => $init());
+  if (options.initAfterOn) et.addEventListener(ON, async () => {
+    await $init();
+    const {$updateInterval, $lastUpdated, $updating} = proxyExt;
+    if (lazyUpdate && !$updating && $updateInterval !== undefined) {
+      if (Date.now() - $lastUpdated.getTime() > $updateInterval) {
+        $update();
+      }
+    }
+  });
+  if (lazyUpdate) et.addEventListener(CHANGE, () => {
+    const {$updateInterval, $lastUpdated, $updating} = proxyExt;
+    if (!$updating && $updateInterval !== undefined) {
+      if (Date.now() - $lastUpdated.getTime() > $updateInterval) {
+        $update();
+      }
+    }
+  });
   delete options.autoInit;
+  delete options.initAfterOn;
   delete options.updateInterval;
+  delete options.lazyUpdate;
 
   return proxyExt;
 };
