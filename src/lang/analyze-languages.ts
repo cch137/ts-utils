@@ -3,7 +3,7 @@ import concentrate from './concentrate'
 // To-Do:
 // 需要判斷數字，因為語句過短，數字過多，可能造成誤判。
 
-export type SupportedLang = 'en' | 'zh' | 'js' | 'ko' | 'ru';
+export type SupportedLang = 'en' | 'zh' | 'ja' | 'ko' | 'ru';
 
 const languageCodeRanges: { [languageCode: string]: [number, number][] } = {
   en: [[0x0000, 0x007F]], // Basic Latin (ASCII)
