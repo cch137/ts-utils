@@ -86,7 +86,7 @@ class GeminiResponse extends Stream implements BaseProviderResponse {
           if (chunk.done) break;
           const { candidates, promptFeedback } = chunk.value
           if (promptFeedback?.blockReason) {
-            globalError = new Error(`Model refused to respond: ${JSON.stringify(promptFeedback)}`)
+            globalError = new Error(`Model does not respond: ${JSON.stringify(promptFeedback)}`)
             throw globalError
           }
           if (candidates === undefined) continue
