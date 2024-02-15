@@ -104,11 +104,19 @@ export async function readStream(
   const reader = stream.getReader();
   const buffers: Uint8Array[] = [];
   while (true) {
-    const { done, value } = await reader.read();
-    if (value) buffers.push(value);
+    const { value, done } = await reader.read();
     if (done) break;
+    buffers.push(value);
   }
-  return Uint8Array.from(buffers.map((b) => [...b]).flat());
+  const array = new Uint8Array(
+    buffers.reduce((size, arr) => size + arr.length, 0)
+  );
+  let offset = 0;
+  for (const buffer of buffers) {
+    array.set(buffer, offset);
+    offset += buffer.length;
+  }
+  return array;
 }
 
 export async function readString(
