@@ -1,9 +1,12 @@
-import type { IncomingMessage } from "http"
+import type { IncomingMessage } from "http";
 
-const singleString = (data: string | string[] | undefined): string => data === undefined ? '' : Array.isArray(data) ? data[0] : data;
-const isRequest = (req: Request | IncomingMessage): req is Request => req instanceof Request;
-const isNotEmptyString = (data: any): data is string => typeof data === 'string' ? /^\s*$/.test(data) : false;
-const trimIps = (ips: string): string => ips.split(',')[0].trim()
+const singleString = (data: string | string[] | undefined): string =>
+  data === undefined ? "" : Array.isArray(data) ? data[0] : data;
+const isRequest = (req: Request | IncomingMessage): req is Request =>
+  req instanceof Request;
+const isNotEmptyString = (data: any): data is string =>
+  typeof data === "string" ? /^\s*$/.test(data) : false;
+const trimIps = (ips: string): string => ips.split(",")[0].trim();
 
 export default (req: Request | IncomingMessage): string => {
   // @ts-ignore
@@ -12,9 +15,15 @@ export default (req: Request | IncomingMessage): string => {
 
   if (isRequest(req)) {
     const headers = req.headers;
-    return trimIps(headers.get('x-forwarded-for') || headers.get('x-real-ip') || '')
+    return trimIps(
+      headers.get("x-forwarded-for") || headers.get("x-real-ip") || ""
+    );
   }
 
   const headers = req.headers;
-  return trimIps(singleString(headers['x-forwarded-for']) || singleString(headers['x-real-ip']) || '')
-}
+  return trimIps(
+    singleString(headers["x-forwarded-for"]) ||
+      singleString(headers["x-real-ip"]) ||
+      ""
+  );
+};

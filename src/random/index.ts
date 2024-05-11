@@ -1,86 +1,101 @@
-import toSeed from './to-seed'
-import baseConverter from '../format/base-converter'
-import MT, { MersenneTwister } from './MersenneTwister'
+import { MT, MTX } from "./MersenneTwister";
+import LCG from "./LinearCongruentialGenerator";
 
-const {
-  BASE10_CHARSET,
-  BASE16_CHARSET,
-  BASE64WEB_CHARSET
-} = baseConverter
+const BASE10_CHARSET = "0123456789";
+const BASE16_CHARSET = "0123456789abcdef";
+const BASE64_CHARSET =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const BASE64URL_CHARSET =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
-class Random {
-  #mt: MersenneTwister
+export type RandomCore = {
+  randint(): number;
+  random(): number;
+};
 
-  constructor(seed?: any) {
-    this.#mt = MT(seed)
+export class Random {
+  #core: RandomCore;
+
+  constructor(seed?: RandomCore | number) {
+    this.#core = typeof seed === "object" ? seed : MT(seed);
   }
 
-  public random() {
-    return this.#mt.random()
+  random(start = 0, end = 1) {
+    return start + this.#core.random() * (end - start);
   }
 
-  /** start 會包括，end 不會包括 */
-  public randInt(start: number, end: number) {
-    if (end === undefined || end === 0) {
-      end = start
-      start = 0
+  randint(start?: number, end?: number) {
+    if (start === undefined) {
+      if (end === undefined) return this.#core.randint();
+      start = 0;
     }
-    return Math.floor(start + this.random() * end)
-  }
-  
-  public choice<T>(array: T[]): T
-  public choice(array: string): string
-  public choice<T>(array: T[] | string) {
-    return array[this.randInt(0, array.length)]
-  }
-  
-  public choices<T>(array: T[], amount?: number): T[]
-  public choices(array: string, amount?: number): string[]
-  public choices<T>(array: T[] | string, amount = 1) {
-    const result: (T | string)[] = []
-    const options: (T | string)[] = []
-    for (let i = 0; i < amount; i++) {
-      if (options.length === 0) {
-        options.push(...array)
-      }
-      result.push(options.splice(this.randInt(0, options.length), 1)[0])
+    if (end === undefined) {
+      (end = start), (start = 0);
     }
-    return result
-  }
-  
-  public shuffle<T>(array: T[]): T[]
-  public shuffle(array: string): string[]
-  public shuffle<T>(array: T[] | string) {
-    return this.choices(array as T[] & string, array.length)
-  }
-  
-  public charset(charset: any | string[], len = 8) {
-    return new Array(len).fill(0).map(_ => this.choice(charset)).join('')
+    return Math.floor(start + this.#core.random() * (end - start));
   }
 
-  public base10(len = 6) {
-    return this.charset(BASE10_CHARSET, len)
+  choice<T>(array: T[]): T;
+  choice(array: string): string;
+  choice<T>(array: T[] | string) {
+    return array[this.randint(0, array.length)];
   }
 
-  public base16(len = 32) {
-    return this.charset(BASE16_CHARSET, len)
+  choices<T>(array: T[], k?: number): T;
+  choices(array: string, k?: number): string[];
+  choices<T>(array: T[] | string, k = 1) {
+    if (typeof array === "string") return this.choices([...array], k);
+    const result: T[] = [];
+    for (let i = 0; i < k; i++) result.push(this.choice(array));
+    return result;
   }
 
-  public base64(len = 32) {
-    return this.charset(BASE64WEB_CHARSET, len)
+  sample<T>(array: T[], k = 1) {
+    array = [...array];
+    const result: T[] = [];
+    for (let i = 0; i < k; i++)
+      result.push(array.splice(this.randint(0, array.length), 1)[0]);
+    return result;
   }
 
-  public lcg (_seed?: any) {
-    let seed = toSeed(_seed)
-    return () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296
+  shuffle<T>(array: T[]): T[];
+  shuffle(array: string): string;
+  shuffle<T>(array: T[] | string) {
+    return typeof array === "string"
+      ? this.choices(array, array.length).join("")
+      : this.choices(array, array.length);
+  }
+
+  base10(len = 6) {
+    return this.choices(BASE10_CHARSET, len).join("");
+  }
+
+  base16(len = 32) {
+    return this.choices(BASE16_CHARSET, len).join("");
+  }
+
+  base64(len = 32) {
+    return this.choices(BASE64_CHARSET, len).join("");
+  }
+
+  base64url(len = 32) {
+    return this.choices(BASE64URL_CHARSET, len).join("");
   }
 }
 
-const random = new Random()
+const random = new Random();
 
-export default random
-export {
-  Random,
-  MT,
-  MersenneTwister
-}
+export default random;
+export { MT, MTX, LCG };
+
+const _random = random.random.bind(random);
+export { _random as random };
+export const randint = random.randint.bind(random);
+export const choice = random.choice.bind(random);
+export const choices = random.choices.bind(random);
+export const sample = random.sample.bind(random);
+export const shuffle = random.shuffle.bind(random);
+export const base10 = random.base10.bind(random);
+export const base16 = random.base16.bind(random);
+export const base64 = random.base64.bind(random);
+export const base64url = random.base64url.bind(random);

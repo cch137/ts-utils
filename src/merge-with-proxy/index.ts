@@ -2,21 +2,21 @@ type KeysWithOptional<T> = {
   [K in keyof T]-?: {} extends { [P in K]: T[K] } ? K : never;
 }[keyof T];
 
-type MergedProperties<L, R, K extends keyof L & keyof R> = {
-  [P in K]: L[P] | Exclude<R[P], undefined>;
+type MergedProperties<A, B, K extends keyof A & keyof B> = {
+  [P in K]: A[P] | Exclude<B[P], undefined>;
 };
 
 type Identity<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 
-type MergeImplement<L, R> = Identity<
-  Pick<L, Exclude<keyof L, keyof R>> &
-    Pick<R, Exclude<keyof R, KeysWithOptional<R>>> &
-    Pick<R, Exclude<KeysWithOptional<R>, keyof L>> &
-    MergedProperties<L, R, KeysWithOptional<R> & keyof L>
+type MergeImplement<A, B> = Identity<
+  Pick<B, Exclude<keyof B, keyof A>> &
+    Pick<A, Exclude<keyof A, KeysWithOptional<A>>> &
+    Pick<A, Exclude<KeysWithOptional<A>, keyof B>> &
+    MergedProperties<B, A, KeysWithOptional<A> & keyof B>
 >;
 
-export type Merge<A extends readonly [...any]> = A extends [infer L, ...infer R]
-  ? MergeImplement<L, Merge<R>>
+export type Merge<L extends readonly [...any]> = L extends [infer A, ...infer B]
+  ? MergeImplement<A, Merge<B>>
   : unknown;
 
 const findObj = <T extends object>(

@@ -7,7 +7,7 @@ export type VersionBaseObject = {
   minor: number;
   patch: number;
   details?: part[];
-}
+};
 
 export type VersionObject = VersionBaseObject & {
   details: part[];
@@ -18,24 +18,28 @@ export type VersionObject = VersionBaseObject & {
   readonly lte: (v: VersionLike) => boolean;
   readonly toString: () => string;
   readonly parse: (v: VersionLike) => VersionObject;
-}
+};
 
 export const parse = (v?: VersionLike): VersionObject => {
   const parts = Array.isArray(v)
     ? v
-    : typeof v === 'string'
-      ? v ? v.split('.') : []
-      : v ? [v.major, v.minor, v.patch, ...(v.details || [])] : [];
-  const [_major=0, _minor=0, _patch=0, ...details] = parts;
+    : typeof v === "string"
+    ? v
+      ? v.split(".")
+      : []
+    : v
+    ? [v.major, v.minor, v.patch, ...(v.details || [])]
+    : [];
+  const [_major = 0, _minor = 0, _patch = 0, ...details] = parts;
   const length = Array.isArray(v) ? v.length : parts.length;
   const major = Number(_major);
   const minor = Number(_minor);
   const patch = Number(_patch);
 
   const toString = () => {
-    if (length === 0) return '';
-    return [major, minor, patch, ...details].map(s => s.toString()).join('.');
-  }
+    if (length === 0) return "";
+    return [major, minor, patch, ...details].map((s) => s.toString()).join(".");
+  };
 
   const eq = (v: VersionLike) => {
     const { major: _1, minor: _2, patch: _3 } = parse(v);
@@ -43,7 +47,7 @@ export const parse = (v?: VersionLike): VersionObject => {
     if (minor != _2) return false;
     if (patch != _3) return false;
     return true;
-  }
+  };
 
   const gte = (v: VersionLike) => {
     const { major: _1, minor: _2, patch: _3 } = parse(v);
@@ -53,7 +57,7 @@ export const parse = (v?: VersionLike): VersionObject => {
     if (minor < _2) return false;
     if (patch >= _3) return true;
     return false;
-  }
+  };
 
   const gt = (v: VersionLike) => {
     const { major: _1, minor: _2, patch: _3 } = parse(v);
@@ -63,7 +67,7 @@ export const parse = (v?: VersionLike): VersionObject => {
     if (minor < _2) return false;
     if (patch > _3) return true;
     return false;
-  }
+  };
 
   const lte = (v: VersionLike) => {
     const { major: _1, minor: _2, patch: _3 } = parse(v);
@@ -73,7 +77,7 @@ export const parse = (v?: VersionLike): VersionObject => {
     if (minor > _2) return false;
     if (patch <= _3) return true;
     return false;
-  }
+  };
 
   const lt = (v: VersionLike) => {
     const { major: _1, minor: _2, patch: _3 } = parse(v);
@@ -83,7 +87,7 @@ export const parse = (v?: VersionLike): VersionObject => {
     if (minor > _2) return false;
     if (patch < _3) return true;
     return false;
-  }
+  };
 
   return {
     major,
@@ -97,7 +101,7 @@ export const parse = (v?: VersionLike): VersionObject => {
     lte,
     toString,
     parse,
-  }
+  };
 };
 
 export const serialize = (v: VersionLike) => parse(v).toString();

@@ -14,15 +14,15 @@ export const subscribe = <T>(name: string, handler: MessageHandler<T>) => {
   if (!handler) return () => void 0;
   et.addEventListener(name, handler as EventListener);
   return () => unsubscribe(name, handler);
-}
+};
 
 export const unsubscribe = <T>(name: string, handler: MessageHandler<T>) => {
   et.removeEventListener(name, handler as EventListener);
-}
+};
 
 export const broadcast = <T>(name: string, data: T) => {
   et.dispatchEvent(new DataEvent(name, data));
-}
+};
 
 export default class Broadcaster<T> {
   readonly name: string;
