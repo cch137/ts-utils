@@ -1,6 +1,6 @@
 {
   "name": "@cch137/utils",
-  "version": "0.0.139",
+  "version": "0.1.0",
   "description": "",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -16,14 +16,10 @@
   "author": "cch137",
   "license": "ISC",
   "dependencies": {
-    "@google/generative-ai": "^0.11.1",
-    "axios": "^1.6.8",
-    "cookie": "^0.6.0",
     "crypto-js": "^4.2.0",
     "qs": "^6.12.1"
   },
   "devDependencies": {
-    "@types/cookie": "^0.6.0",
     "@types/crypto-js": "^4.2.2",
     "@types/node": "^20.12.11",
     "@types/qs": "^6.9.15",

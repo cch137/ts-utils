@@ -1,4 +1,5 @@
-import type { PartialObject, None } from "./types";
+export type PartialObject<T> = { [key in keyof T]?: any };
+export type None = void | undefined | null;
 
 const ON = "on";
 const OFF = "off";

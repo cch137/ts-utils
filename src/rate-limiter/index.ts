@@ -1,4 +1,4 @@
-import timeMsToLocaleString from "../format/timeMsToLocaleString";
+import formatDuration from "../str/format-duration";
 
 const checkExpireFrequencyMs = 60000;
 
@@ -78,7 +78,7 @@ class RateLimiter extends Map<string, RateLimiterUser> {
       if (user.after(now - rule.timeMs) > rule.maxCount) {
         return {
           success: false,
-          message: `This service is rate limited, please try again after ${timeMsToLocaleString(
+          message: `This service is rate limited, please try again after ${formatDuration(
             rule.timeMs
           )}.`,
         };

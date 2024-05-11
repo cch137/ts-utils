@@ -1,4 +1,4 @@
-import str, { lower } from "./str";
+import str from ".";
 
 const BASE2_CHARSET = "01";
 const BASE10_CHARSET = "0123456789";
@@ -11,9 +11,21 @@ const BASE64_CHARSET =
 const BASE64WEB_CHARSET =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
-const getCharset = (radix: number | string) => {
+const fromCharCode = (str: string | number): string =>
+  String.fromCharCode(+str);
+
+export const base64ToBase64Url = (text: string) =>
+  text.replace(/\+/g, "-").replace(/\//g, "_");
+
+export const base64UrlToBase64 = (text: string) =>
+  text.replace(/-/g, "+").replace(/_/g, "/");
+
+export const secureBase64 = (str: string): string =>
+  str.replace(/[^A-Za-z0-9+/]/g, "");
+
+export const getCharset = (radix: number | string) => {
   if (typeof radix !== "string") {
-    radix = lower(radix);
+    radix = radix.toString().toLowerCase();
   }
   switch (radix) {
     case "2":
@@ -36,7 +48,7 @@ const getCharset = (radix: number | string) => {
   }
 };
 
-const convert = (
+export const baseConverter = (
   value: string | number,
   fromCharset: string | number,
   toCharset: string | number,
@@ -69,7 +81,7 @@ const convert = (
   );
 };
 
-const textToBase64 = (text: string) => {
+export const textToBase64 = (text: string) => {
   const input: number[] = text.split("").map((c) => c.charCodeAt(0));
   const output: string[] = [];
   let i = 0;
@@ -94,13 +106,7 @@ const textToBase64 = (text: string) => {
   );
 };
 
-const secureBase64RegEx = /[^A-Za-z0-9+/]/g;
-const secureBase64 = (str: string): string =>
-  str.replace(secureBase64RegEx, "");
-const fromCharCode = (str: string | number): string =>
-  String.fromCharCode(+str);
-
-const base64ToText = (str: string): string => {
+export const base64ToText = (str: string): string => {
   const input: string[] = secureBase64(str).split("");
   const output: string[] = [];
   let i = 0;
@@ -117,21 +123,6 @@ const base64ToText = (str: string): string => {
     }
   }
   return output.join("").replace(/\x00/g, "");
-};
-
-const baseConverter = {
-  BASE2_CHARSET,
-  BASE10_CHARSET,
-  BASE16_CHARSET,
-  BASE36_CHARSET,
-  BASE62_CHARSET,
-  BASE64_CHARSET,
-  BASE64WEB_CHARSET,
-  convert,
-  getCharset,
-  secureBase64,
-  textToBase64,
-  base64ToText,
 };
 
 export default baseConverter;

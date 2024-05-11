@@ -1,4 +1,4 @@
-import store from "../dev/store";
+import store from "../store";
 
 type ErrorHandler = (e: any) => void;
 

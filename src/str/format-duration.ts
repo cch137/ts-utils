@@ -1,4 +1,4 @@
-export default function timeMsToLocaleString(timeMs: number): string {
+export default function formatDuration(timeMs: number): string {
   if (timeMs < 1000) {
     return `1 second`;
   } else if (timeMs < 60000) {

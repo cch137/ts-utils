@@ -1,12 +1,8 @@
 import { Random } from "../random";
-import hash from "../format/hash";
-import type { Algorithm } from "../format/hash";
-import {
-  asciiToNumbers,
-  numbersToAscii,
-  convertUintArray,
-} from "../format/binary";
-import { binToBigint, hexToBigint } from "../format/number";
+import hash from "../hash";
+import type { Algorithm } from "../hash";
+import { asciiToNumbers, numbersToAscii, convertUintArray } from "../binary";
+import { binaryToBigint, hexToBigint } from "../number";
 
 // FLAGS
 // SPECIAL FLAGS
@@ -223,7 +219,7 @@ function packString(s: string) {
   if (s === "") return new Uint8Array([flags_STR_EMPTY]);
   if (/^-?[0-1]+$/.test(s)) {
     const flag = s.startsWith("-") ? flags_STR_BIN_ : flags_STR_BIN;
-    return new Uint8Array([flag, ...packNumber(binToBigint(s)).slice(1)]);
+    return new Uint8Array([flag, ...packNumber(binaryToBigint(s)).slice(1)]);
   }
   if (/^-?[0-9]+$/.test(s)) {
     const n = BigInt(s),

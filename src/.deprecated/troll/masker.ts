@@ -1,9 +1,8 @@
 import random, { Random } from "../../random";
 import toSeed from "./to-seed";
-import baseConverter from "../../format/base-converter";
+import baseConverter, { getCharset } from "../../str/base-converter";
 
 const randint = (start: number, end: number) => random.randint(start, end);
-const { convert, getCharset } = baseConverter;
 
 const maskingCharsetGenerator = (
   _charset: string,
@@ -34,7 +33,7 @@ const mask = (
   const result = [
     seed !== undefined
       ? realCharset[randint(0, charsetNum)]
-      : convert(seed1, 10, charset),
+      : baseConverter(seed1, 10, charset),
     ...characters.map((char) => generator()[realCharset.indexOf(char)]),
   ] as string[];
   return --level < 1 ? result.join("") : mask(result, charset, level, seed);
@@ -48,7 +47,7 @@ const unmask = (
 ): any => {
   const realCharset = getCharset(charset);
   const seed1 = toSeed(
-    seed !== undefined ? seed : +convert(string[0], charset, 10)
+    seed !== undefined ? seed : +baseConverter(string[0], charset, 10)
   );
   const rd1 = new Random(seed1);
   const generator = maskingCharsetGenerator(

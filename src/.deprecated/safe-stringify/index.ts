@@ -1,4 +1,4 @@
-import isIterable from "../is-iterable";
+import isIterable from "../../is-iterable";
 
 export default function safeStringify(obj: any): string {
   try {

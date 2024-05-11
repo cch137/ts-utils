@@ -8,7 +8,7 @@ const isNotEmptyString = (data: any): data is string =>
   typeof data === "string" ? /^\s*$/.test(data) : false;
 const trimIps = (ips: string): string => ips.split(",")[0].trim();
 
-export default (req: Request | IncomingMessage): string => {
+export default function getRequestIp(req: Request | IncomingMessage): string {
   // @ts-ignore
   const ip = req?.ip;
   if (isNotEmptyString(ip)) return trimIps(ip);
@@ -26,4 +26,4 @@ export default (req: Request | IncomingMessage): string => {
       singleString(headers["x-real-ip"]) ||
       ""
   );
-};
+}

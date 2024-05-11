@@ -1,10 +1,11 @@
-import sha3 from "crypto-js/sha3";
-import md5 from "crypto-js/md5";
-import str from "../../format/str";
-import baseConverter from "../../format/base-converter";
+import str from "../../str";
+import {
+  textToBase64,
+  base64ToText,
+  secureBase64,
+} from "../../str/base-converter";
 import { mask, unmask } from "./masker";
-
-const { textToBase64, base64ToText, secureBase64 } = baseConverter;
+import hash from "../../hash";
 
 /** Encode 加密 */
 function e(input: any, maskLevel = 1, seed?: any): string {
@@ -31,10 +32,7 @@ function hx(
   seed?: any
 ) {
   const encrypted = e(input, 1, seed).substring(1);
-  if (algorithm === "MD5") {
-    return md5(encrypted).toString();
-  }
-  return sha3(encrypted, { outputLength: algorithm }).toString();
+  return hash(encrypted, algorithm);
 }
 
 export { e, d, hx };

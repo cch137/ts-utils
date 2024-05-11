@@ -1,13 +1,56 @@
-import str from "./str";
-import math from "../math";
+import str from ".";
+import { round } from "../number";
 
-export default function (
+const fullMonthNames = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+const abbreviatedMonthNames = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+const fullDayNames = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
+const abbreviatedDayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const addLeadingZeros = (val: number, len = 2) =>
+  val.toString().padStart(len, "0");
+
+export default function formatDate(
   date: Date,
   format = "yyyy-MM-dd HH:mm:ss",
   isUTC = false
 ) {
-  const addLeadingZeros = (val: number, len = 2) =>
-    val.toString().padStart(len, "0");
   const dateProperties = isUTC
     ? {
         y: date.getUTCFullYear(),
@@ -44,69 +87,22 @@ export default function (
     .replace(/m/g, str(dateProperties.m))
     .replace(/ss/g, addLeadingZeros(dateProperties.s))
     .replace(/s/g, str(dateProperties.s))
-    .replace(/fff/g, str(math.round(dateProperties.f)))
-    .replace(/ff/g, str(math.round(dateProperties.f / 10)))
-    .replace(/f/g, str(math.round(dateProperties.f / 100)))
+    .replace(/fff/g, str(round(dateProperties.f)))
+    .replace(/ff/g, str(round(dateProperties.f / 10)))
+    .replace(/f/g, str(round(dateProperties.f / 100)))
     .replace(/TT/gi, T)
     .replace(/T/gi, T.charAt(0))
-    .replace(
-      /dddd/g,
-      [
-        "Sunday",
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-      ][dateProperties.w]
-    )
-    .replace(
-      /ddd/g,
-      ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][dateProperties.w]
-    )
+    .replace(/dddd/g, fullDayNames[dateProperties.w])
+    .replace(/ddd/g, abbreviatedDayNames[dateProperties.w])
     .replace(/dd/g, addLeadingZeros(dateProperties.d))
     .replace(/d/g, str(dateProperties.d));
   const formatBefore = format;
   format = format
-    .replace(
-      /MMMM/g,
-      [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
-      ][dateProperties.M - 1]
-    )
-    .replace(
-      /MMM/g,
-      [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ][dateProperties.M - 1]
-    );
-  if (format !== formatBefore) {
-    return format;
-  }
-  return format
-    .replace(/MM/g, addLeadingZeros(dateProperties.M))
-    .replace(/M/g, str(dateProperties.M));
+    .replace(/MMMM/g, fullMonthNames[dateProperties.M - 1])
+    .replace(/MMM/g, abbreviatedMonthNames[dateProperties.M - 1]);
+  return format !== formatBefore
+    ? format
+    : format
+        .replace(/MM/g, addLeadingZeros(dateProperties.M))
+        .replace(/M/g, str(dateProperties.M));
 }
