@@ -6,7 +6,8 @@ export default function createTaskGroup<T>(
   runningLimit = 16,
   executeGapMs = 1
 ) {
-  let isExecuted = false;
+  let running = false;
+  let stopping = false;
   const tasks = _tasks.map((v, i) => new Task(v, i));
   const queueTasks = [...tasks].reverse() as Task[];
   const completedTasks: Task[] = [];
@@ -34,22 +35,48 @@ export default function createTaskGroup<T>(
     }
   }
 
-  const run = () => {
-    if (isExecuted) throw new Error("Tasks is already running");
-    isExecuted = true;
+  const start = () => {
+    if (running) throw new Error("Tasks is running");
+    running = true;
     return new Promise<Task[]>((resolve, reject) => {
-      const _run = () => {
+      const _start = () => {
         try {
-          if (queueTasks.length !== 0 && runningTasks.size < runningLimit)
+          if (
+            !stopping &&
+            queueTasks.length !== 0 &&
+            runningTasks.size < runningLimit
+          )
             queueTasks.pop()!.exec!();
           if (runningTasks.size === 0) {
             resolve(tasks as Task[]);
-          } else setTimeout(_run, executeGapMs);
+            running = false;
+          } else setTimeout(_start, executeGapMs);
         } catch (e) {
           reject(e);
+          running = false;
         }
       };
-      _run();
+      _start();
+    });
+  };
+
+  const stop = () => {
+    if (stopping) throw new Error("Tasks is stopping");
+    stopping = true;
+    return new Promise<void>((resolve, reject) => {
+      if (!running && !runningTasks.size) return resolve();
+      const _stop = () => {
+        try {
+          if (!running && !runningTasks.size) {
+            resolve();
+            stopping = false;
+          } else setTimeout(_stop, executeGapMs);
+        } catch (e) {
+          reject(e);
+          stopping = false;
+        }
+      };
+      _stop();
     });
   };
 
@@ -64,24 +91,30 @@ export default function createTaskGroup<T>(
         return completedTasks.length === tasks.length;
       },
       get running() {
-        return isExecuted && completedTasks.length !== tasks.length;
+        return running && !runningTasks.size;
+      },
+      get stopping() {
+        return stopping;
       },
       tasks,
       queueTasks,
       runningTasks,
       completedTasks,
-      run,
+      start,
+      stop,
     },
     emitter
   ) as any as Readonly<
     {
       done: boolean;
       running: boolean;
+      stopping: boolean;
       tasks: readonly Task[];
       queueTasks: readonly Task[];
       completedTasks: readonly Task[];
       runningTasks: Readonly<Set<Task>>;
-      run: () => Promise<Task[]>;
+      start: () => Promise<Task[]>;
+      stop: () => Promise<void>;
     } & Emitter<{
       progress: [task: Task];
       done: [];
