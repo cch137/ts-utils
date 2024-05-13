@@ -1,4 +1,4 @@
-import { EventEmitter } from "node:events";
+import Emitter from "../emitter";
 import mergeWithProxy from "../merge-with-proxy";
 
 type FetchStreamOptions<
@@ -14,7 +14,7 @@ type FetchStreamOptions<
   keepChunks: KeepChunks;
 }>;
 
-type StreamResponseEmitter<T = any> = EventEmitter<{
+type StreamResponseEmitter<T = any> = Emitter<{
   data: [chunk: T];
   error: [err: any];
   end: [];
@@ -63,7 +63,7 @@ function fetchStream<KeepChunks extends boolean, T>(
   return new Promise(async (resolve1, reject) => {
     const process = new Promise<void>(async (resolve2) => {
       try {
-        const emitter: StreamResponseEmitter<T> = new EventEmitter();
+        const emitter: StreamResponseEmitter<T> = new Emitter();
         const response = await fetch(input, init);
         resolve1(mergeWithProxy(props, response, emitter));
         const reader = response.body!.getReader();
