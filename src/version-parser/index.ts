@@ -89,7 +89,7 @@ export const parse = (v?: VersionLike): VersionObject => {
     return false;
   };
 
-  return {
+  return Object.freeze({
     major,
     minor,
     patch,
@@ -101,7 +101,7 @@ export const parse = (v?: VersionLike): VersionObject => {
     lte,
     toString,
     parse,
-  };
+  });
 };
 
 export const serialize = (v: VersionLike) => parse(v).toString();
