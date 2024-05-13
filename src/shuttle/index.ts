@@ -482,30 +482,20 @@ function decryptBuffer(array: Uint8Array | number[], ...salts: number[]) {
   return buffer;
 }
 
-function packData<T>(data: T, salts: number[]): Shuttle<T>;
-function packData<T>(data: T, ...salts: number[]): Shuttle<T>;
-function packData<T>(data: T, ...salts: (number | number[])[]) {
-  return new Shuttle(encryptBuffer(_packData(data), ...salts.flat()));
+function packData<T>(data: T, ...salts: number[]) {
+  return new Shuttle<T>(encryptBuffer(_packData(data), ...salts.flat()));
 }
 
 function unpackData<T>(
   array: Shuttle<T> | Uint8Array | number[] | string,
-  salts: number[]
-): T;
-function unpackData<T>(
-  array: Shuttle<T> | Uint8Array | number[] | string,
   ...salts: number[]
-): T;
-function unpackData<T>(
-  array: Shuttle<T> | Uint8Array | number[] | string,
-  ...salts: (number | number[])[]
 ) {
   return _unpackData(
     decryptBuffer(
       typeof array === "string" ? asciiToNumbers(array) : array,
-      ...salts.flat()
+      ...salts
     )
-  );
+  ) as T;
 }
 
 function hashData<T>(
@@ -521,39 +511,19 @@ function hashData<T>(
 function packDataWithHash<T>(
   data: T,
   algorithm: Algorithm,
-  salts: number[]
-): HashedShuttle<T>;
-function packDataWithHash<T>(
-  data: T,
-  algorithm: Algorithm,
   ...salts: number[]
-): HashedShuttle<T>;
-function packDataWithHash<T>(
-  data: T,
-  algorithm: Algorithm,
-  ...salts: (number | number[])[]
 ) {
   const array = packData(data);
   const hash = hashData(array, algorithm);
-  return packData<ShuttleWithHash<T>>([hash, array], salts.flat());
+  return packData<ShuttleWithHash<T>>([hash, array], ...salts);
 }
 
 function unpackDataWithHash<T>(
   array: HashedShuttle<T> | Uint8Array | number[] | string,
   algorithm: Algorithm,
-  salts: number[]
-): T;
-function unpackDataWithHash<T>(
-  array: HashedShuttle<T> | Uint8Array | number[] | string,
-  algorithm: Algorithm,
   ...salts: number[]
-): T;
-function unpackDataWithHash<T>(
-  array: HashedShuttle<T> | Uint8Array | number[] | string,
-  algorithm: Algorithm,
-  ...salts: (number | number[])[]
 ) {
-  const [hash, _array] = unpackData<ShuttleWithHash<T>>(array, salts.flat());
+  const [hash, _array] = unpackData<ShuttleWithHash<T>>(array, ...salts);
   const correctHash = hashData(_array, algorithm);
   if (hash !== correctHash)
     throw new Error(`Hash Mismatch: "${hash}" !== "${correctHash}"`);
@@ -581,16 +551,12 @@ class Shuttle<T> extends Uint8Array {
   static decrypt = decryptBuffer;
   static encrypt = encryptBuffer;
 
-  unpack(salts: number[]): T;
-  unpack(...salts: number[]): T;
-  unpack(...salts: (number | number[])[]) {
-    return unpackData(this, salts.flat());
+  unpack(...salts: number[]) {
+    return unpackData(this, ...salts);
   }
 
-  unpackWithHash(algorithm: Algorithm, salts: number[]): T;
-  unpackWithHash(algorithm: Algorithm, ...salts: number[]): T;
-  unpackWithHash(algorithm: Algorithm, ...salts: (number | number[])[]) {
-    return unpackDataWithHash(this, algorithm, salts.flat());
+  unpackWithHash(algorithm: Algorithm, ...salts: number[]) {
+    return unpackDataWithHash(this, algorithm, ...salts);
   }
 
   toBase64(): string {
