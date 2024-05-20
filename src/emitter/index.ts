@@ -1,4 +1,5 @@
-import Group from "../group";
+import type Group from "../group";
+import Collection, { WeakCollection } from "../group/collection";
 
 type EventMap<T> = Record<keyof T, any[]> | DefaultEventMap;
 type DefaultEventMap = [never];
@@ -7,7 +8,9 @@ type Args<K, T> = T extends DefaultEventMap
   : K extends keyof T
   ? T[K]
   : never;
-type Key<K, T> = T extends DefaultEventMap ? string | symbol : K | keyof T;
+type _Key<K, T> = T extends DefaultEventMap
+  ? string | symbol | number
+  : K | keyof T;
 type TListener<K, T, F> = T extends DefaultEventMap
   ? F
   : K extends keyof T
@@ -17,54 +20,37 @@ type TListener<K, T, F> = T extends DefaultEventMap
   : never;
 type Listener1<K, T> = TListener<K, T, (...args: any[]) => void>;
 
-class Listener {
-  readonly item: Function;
-  readonly once: boolean;
-  constructor(listener: Function, isOnce = false) {
-    this.item = listener;
-    this.once = isOnce;
-  }
-}
-
 export default class Emitter<T extends EventMap<T>> {
-  private listenerMap = new Map<any, Group<Listener>>();
+  private listeners = new Collection<_Key<any, T>, Function>();
+  private onces = new WeakCollection<Group<Function>, Function>();
 
-  on<K>(eventName: Key<K, T>, listener: Listener1<K, T>, once = false): this {
-    if (!this.listenerMap.has(eventName))
-      this.listenerMap.set(eventName, new Group());
-    this.listenerMap.get(eventName)?.push(new Listener(listener, once));
+  on<K>(eventName: _Key<K, T>, listener: Listener1<K, T>): this {
+    this.listeners.group(eventName).push(listener);
     return this;
   }
 
-  once<K>(eventName: Key<K, T>, listener: Listener1<K, T>): this {
-    return this.on(eventName, listener, true);
-  }
-
-  off<K>(eventName: Key<K, T>, listener: Listener1<K, T>): this {
-    const listeners = this.listenerMap.get(eventName);
-    if (listeners) {
-      const length = listeners.length;
-      for (let i = 0; i < length; i++) {
-        const l = listeners[i];
-        const { item } = l;
-        if (item === listener) {
-          listeners.delete(l);
-          break;
-        }
-      }
-    }
+  once<K>(eventName: _Key<K, T>, listener: Listener1<K, T>): this {
+    const l = this.listeners.group(eventName);
+    this.onces.group((l.push(listener), l)).push(listener);
     return this;
   }
 
-  emit<K>(eventName: Key<K, T>, ...args: Args<K, T>): boolean {
-    const listeners = this.listenerMap.get(eventName);
-    if (listeners) {
-      listeners
-        .filter((i) => i.once)
-        .map((i) => (listeners.deleteOne(i), i))
-        .forEach(async (i) => i?.item(...args));
-      listeners.forEach(async (i) => i.item(...args));
-    }
+  off<K>(eventName: _Key<K, T>, listener: Listener1<K, T>): this {
+    this.listeners.get(eventName)?.deleteOne(listener);
+    this.listeners.trim();
+    return this;
+  }
+
+  emit<K>(eventName: _Key<K, T>, ...args: Args<K, T>): boolean {
+    const l = this.listeners.get(eventName);
+    l?.forEach(async (i) => i(...args));
+    if (l) this.onces.once(l)?.forEach((i) => l.deleteOne(i));
+    this.listeners.trim();
     return true;
+  }
+
+  clear<K>(eventName: _Key<K, T>, ...args: Args<K, T>): this {
+    this.listeners.delete(eventName);
+    return this;
   }
 }
