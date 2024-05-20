@@ -51,6 +51,8 @@ export class Random {
   }
 
   sample<T>(array: T[], k = 1) {
+    if (k > array.length || k < 0)
+      throw new Error("Sample larger than population or is negative");
     array = [...array];
     const result: T[] = [];
     for (let i = 0; i < k; i++)
@@ -62,8 +64,8 @@ export class Random {
   shuffle(array: string): string;
   shuffle<T>(array: T[] | string) {
     return typeof array === "string"
-      ? this.choices(array, array.length).join("")
-      : this.choices(array, array.length);
+      ? this.sample(array.split(""), array.length).join("")
+      : this.sample(array, array.length);
   }
 
   base10(len = 6) {

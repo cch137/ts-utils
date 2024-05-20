@@ -483,7 +483,7 @@ function decryptBuffer(array: Uint8Array | number[], ...salts: number[]) {
 }
 
 function packData<T>(data: T, ...salts: number[]) {
-  return new Shuttle<T>(encryptBuffer(_packData(data), ...salts.flat()));
+  return new Shuttle<T>(encryptBuffer(_packData(data), ...salts));
 }
 
 function unpackData<T>(
