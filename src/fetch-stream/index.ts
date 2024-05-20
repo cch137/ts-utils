@@ -53,6 +53,7 @@ function fetchStream<KeepChunks extends boolean, T>(
     encoding,
     chunkHandler,
     keepChunks,
+    signal,
     ...init
   }: RequestInit &
     FetchStreamOptions<T, string, (chunk: any) => T, KeepChunks> = {}
@@ -61,10 +62,15 @@ function fetchStream<KeepChunks extends boolean, T>(
   if (keepChunks === undefined)
     keepChunks = fetchStream.keepChunks as KeepChunks;
   return new Promise(async (resolve1, reject) => {
+    const controller = new AbortController();
+    if (signal) signal.addEventListener("abort", () => controller.abort());
     const process = new Promise<void>(async (resolve2) => {
       try {
         const emitter: StreamResponseEmitter<T> = new Emitter();
-        const response = await fetch(input, init);
+        const response = await fetch(input, {
+          ...init,
+          signal: controller.signal,
+        });
         resolve1(merge(props, response, emitter));
         const reader = response.body!.getReader();
         if (encoding) {
@@ -105,6 +111,7 @@ function fetchStream<KeepChunks extends boolean, T>(
       },
       chunks,
       process,
+      controller,
     };
   });
 }
