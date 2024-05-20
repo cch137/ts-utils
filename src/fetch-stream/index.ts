@@ -25,6 +25,7 @@ type StreamResponse<T = Uint8Array> = Response &
     chunks: T[];
     readonly done: boolean;
     process: Promise<void>;
+    controller: AbortController;
   };
 
 function fetchStream<KeepChunks extends boolean, Chunk = string>(
