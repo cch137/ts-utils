@@ -37,7 +37,7 @@ export class PropMap<Key extends string, Prop extends string> {
   }
 }
 
-export class FlagSet<Flag extends string> {
+export class FlagSet<Flag extends string | symbol | number> {
   readonly flags: readonly Flag[];
 
   constructor(keys: readonly Flag[]) {
@@ -56,7 +56,7 @@ export class FlagSet<Flag extends string> {
   }
 
   serialize(record: Flag | Flag[] | Partial<{ [f in Flag]: boolean }>) {
-    if (typeof record === "string") record = [record];
+    if (!Array.isArray(record) && typeof record !== "object") record = [record];
     let num = 1n << BigInt(this.flags.length);
     const flags = new Set(Array.isArray(record) ? record : trues(record));
     this.flags.forEach((k, i, arr) => {
@@ -70,23 +70,23 @@ export default class PermissionMap<
   Role extends string,
   Permission extends string
 > extends PropMap<Role, Permission> {
-  readonly #roles: FlagSet<Role>;
+  private readonly roleSet: FlagSet<Role>;
 
   constructor(
     rules: readonly [Role, Partial<{ [p in Permission]: boolean }>][],
     defaultPermissions?: { [key in Permission]: boolean }
   ) {
     super(rules, defaultPermissions);
-    this.#roles = new FlagSet(rules.map(([r]) => r));
+    this.roleSet = new FlagSet(rules.map(([r]) => r));
   }
 
   get roles() {
-    return this.#roles.flags;
+    return this.roleSet.flags;
   }
 
   parse(auth: bigint | Role | Role[] | Partial<{ [r in Role]: boolean }>) {
-    const roles = this.#roles.parse(
-      typeof auth === "bigint" ? auth : this.#roles.serialize(auth)
+    const roles = this.roleSet.parse(
+      typeof auth === "bigint" ? auth : this.roleSet.serialize(auth)
     );
     return lock({
       roles,
@@ -95,16 +95,16 @@ export default class PermissionMap<
   }
 
   getRoles(auth: bigint) {
-    return this.#roles.parse(auth);
+    return this.roleSet.parse(auth);
   }
 
   getPermissions(
     auth: bigint | Role | Role[] | Partial<{ [r in Role]: boolean }>
   ) {
-    return this.get(typeof auth === "bigint" ? this.#roles.parse(auth) : auth);
+    return this.get(typeof auth === "bigint" ? this.roleSet.parse(auth) : auth);
   }
 
   serializeRoles(roles: Role | Role[] | Partial<{ [r in Role]: boolean }>) {
-    return this.#roles.serialize(roles);
+    return this.roleSet.serialize(roles);
   }
 }
