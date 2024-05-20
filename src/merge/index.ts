@@ -24,15 +24,20 @@ const findObj = <T extends object>(
   p: string | number | symbol
 ): any => objs.find((o) => p in o) || objs[0];
 
-export default function mergeWithProxy<T extends object[]>(
-  ...objs: [...T]
-): Merge<T> {
+const merged = Symbol("Merged");
+
+export default function merge<T extends object[]>(...objs: [...T]): Merge<T> {
+  // @ts-ignore
+  objs = objs
+    .map((i) => (merged in i ? (i[merged] as [...T]) : ([i] as [T])))
+    .flat();
   Object.freeze(objs);
   return new Proxy(objs[0], {
     has(_, p) {
       return Boolean(objs.find((o) => p in o));
     },
     get(_, p) {
+      if (p === merged) return objs;
       return findObj(objs, p)[p];
     },
     set(_, p, v) {

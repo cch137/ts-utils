@@ -1,5 +1,5 @@
 import Emitter from "../emitter";
-import mergeWithProxy from "../merge-with-proxy";
+import merge from "../merge";
 
 type FetchStreamOptions<
   T = Uint8Array,
@@ -65,7 +65,7 @@ function fetchStream<KeepChunks extends boolean, T>(
       try {
         const emitter: StreamResponseEmitter<T> = new Emitter();
         const response = await fetch(input, init);
-        resolve1(mergeWithProxy(props, response, emitter));
+        resolve1(merge(props, response, emitter));
         const reader = response.body!.getReader();
         if (encoding) {
           const textDecoder = new TextDecoder(encoding);

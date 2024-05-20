@@ -1,11 +1,16 @@
 import Emitter from "../emitter";
-import mergeWithProxy from "../merge-with-proxy";
+import merge from "../merge";
+
+type TaskGroupOptions = Partial<{
+  limit: number;
+  gap: number;
+}>;
 
 export default function createTaskGroup<T>(
   _tasks: (() => Promise<T>)[],
-  runningLimit = 16,
-  executeGapMs = 1
+  options: TaskGroupOptions = {}
 ) {
+  const { limit = 16, gap: gapMs = 1 } = options;
   let running = false;
   let stopping = false;
   const tasks = _tasks.map((v, i) => new Task(v, i));
@@ -41,16 +46,12 @@ export default function createTaskGroup<T>(
     return new Promise<Task[]>((resolve, reject) => {
       const _start = () => {
         try {
-          if (
-            !stopping &&
-            queueTasks.length !== 0 &&
-            runningTasks.size < runningLimit
-          )
+          if (!stopping && queueTasks.length !== 0 && runningTasks.size < limit)
             queueTasks.pop()!.exec!();
           if (runningTasks.size === 0) {
             resolve(tasks as Task[]);
             running = false;
-          } else setTimeout(_start, executeGapMs);
+          } else setTimeout(_start, gapMs);
         } catch (e) {
           reject(e);
           running = false;
@@ -70,7 +71,7 @@ export default function createTaskGroup<T>(
           if (!running && !runningTasks.size) {
             resolve();
             stopping = false;
-          } else setTimeout(_stop, executeGapMs);
+          } else setTimeout(_stop, gapMs);
         } catch (e) {
           reject(e);
           stopping = false;
@@ -85,7 +86,7 @@ export default function createTaskGroup<T>(
     done: [];
   }>();
 
-  return mergeWithProxy(
+  return merge(
     {
       get done() {
         return completedTasks.length === tasks.length;
