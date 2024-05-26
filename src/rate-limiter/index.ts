@@ -44,7 +44,7 @@ type RateLimiterResponse =
       message: string;
     };
 
-class RateLimiter extends Map<string, RateLimiterUser> {
+export default class RateLimiter extends Map<string, RateLimiterUser> {
   rules: RateLimiterRule[];
   #lastUpdated: number = 0;
 
@@ -94,5 +94,3 @@ class RateLimiter extends Map<string, RateLimiterUser> {
     });
   }
 }
-
-export default RateLimiter;
