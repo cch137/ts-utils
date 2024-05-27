@@ -64,6 +64,14 @@ class BufferPointer {
   }
 }
 
+function encodeURL(s: string) {
+  return s.replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+
+function decodeURL(s: string) {
+  return s.replaceAll("-", "+").replaceAll("_", "/");
+}
+
 function getBufferBytePerElement(
   bytes: Uint8Array | Uint16Array | Uint32Array
 ) {
@@ -492,7 +500,7 @@ function unpackData<T>(
 ) {
   return _unpackData(
     decryptBuffer(
-      typeof array === "string" ? asciiToNumbers(array) : array,
+      typeof array === "string" ? asciiToNumbers(decodeURL(array)) : array,
       ...salts
     )
   ) as T;
@@ -536,7 +544,7 @@ export type HashedShuttle<T> = Shuttle<[string, Shuttle<T>]>;
 class Shuttle<T> extends Uint8Array {
   static load<T>(data: Shuttle<T> | Uint8Array | number[] | string) {
     return new Shuttle<T>(
-      typeof data === "string" ? asciiToNumbers(data) : data
+      typeof data === "string" ? asciiToNumbers(decodeURL(data)) : data
     );
   }
 
@@ -561,6 +569,10 @@ class Shuttle<T> extends Uint8Array {
 
   toBase64(): string {
     return numbersToAscii(this);
+  }
+
+  toBase64URL(): string {
+    return encodeURL(numbersToAscii(this));
   }
 }
 
