@@ -1,6 +1,6 @@
 {
   "name": "@cch137/utils",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "description": "",
   "type": "commonjs",
   "main": "./dist/index.js",
