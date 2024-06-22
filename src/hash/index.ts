@@ -1,5 +1,5 @@
-import sha3 from "crypto-js/sha3";
-import md5 from "crypto-js/md5";
+import sha3 from "crypto-js/sha3.js";
+import md5 from "crypto-js/md5.js";
 
 type Algorithm = "MD5" | 224 | 256 | 384 | 512;
 

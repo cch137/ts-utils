@@ -1,5 +1,5 @@
-import Emitter from "../emitter";
-import merge from "../merge";
+import Emitter from "../emitter/index.js";
+import merge from "../merge/index.js";
 
 type FetchStreamOptions<
   T = Uint8Array,

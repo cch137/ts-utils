@@ -1,5 +1,5 @@
-import { MT, MTX } from "./MersenneTwister";
-import LCG from "./LinearCongruentialGenerator";
+import { MT, MTX } from "./MersenneTwister.js";
+import LCG from "./LinearCongruentialGenerator.js";
 
 const BASE10_CHARSET = "0123456789";
 const BASE16_CHARSET = "0123456789abcdef";

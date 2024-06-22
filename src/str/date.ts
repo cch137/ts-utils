@@ -1,5 +1,5 @@
-import str from ".";
-import { round } from "../number";
+import str from "./index.js";
+import { round } from "../number/index.js";
 
 const fullMonthNames = [
   "January",

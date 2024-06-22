@@ -1,8 +1,12 @@
-import { Random } from "../random";
-import hash from "../hash";
-import type { Algorithm } from "../hash";
-import { asciiToNumbers, numbersToAscii, convertUintArray } from "../binary";
-import { binaryToBigint, hexToBigint } from "../number";
+import { Random } from "../random/index.js";
+import hash from "../hash/index.js";
+import type { Algorithm } from "../hash/index.js";
+import {
+  asciiToNumbers,
+  numbersToAscii,
+  convertUintArray,
+} from "../binary/index.js";
+import { binaryToBigint, hexToBigint } from "../number/index.js";
 
 // FLAGS
 // SPECIAL FLAGS

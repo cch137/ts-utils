@@ -1,4 +1,4 @@
-import type { RandomCore } from ".";
+import type { RandomCore } from "./index.js";
 
 const N = 624;
 const M = 397;

@@ -1,5 +1,5 @@
-import type Group from "../group";
-import Collection, { WeakCollection } from "../group/collection";
+import type Group from "../group/index.js";
+import Collection, { WeakCollection } from "../group/collection.js";
 
 type EventMap<T> = Record<keyof T, any[]> | DefaultEventMap;
 type DefaultEventMap = [never];

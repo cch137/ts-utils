@@ -1,4 +1,4 @@
-import Group from ".";
+import Group from "./index.js";
 
 export default class Collection<K = any, V = any> extends Map<K, Group<V>> {
   group(key: K): Group<V> {

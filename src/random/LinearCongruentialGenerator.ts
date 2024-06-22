@@ -1,4 +1,4 @@
-import type { RandomCore } from ".";
+import type { RandomCore } from "./index.js";
 
 export class LinearCongruentialGenerator implements RandomCore {
   seed: number;

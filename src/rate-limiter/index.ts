@@ -1,4 +1,4 @@
-import formatDuration from "../str/format-duration";
+import formatDuration from "../str/format-duration.js";
 
 const checkExpireFrequencyMs = 60000;
 

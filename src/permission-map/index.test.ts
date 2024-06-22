@@ -1,4 +1,4 @@
-import PermissionMap from ".";
+import PermissionMap from "./index.js";
 
 function test() {
   const rr = new PermissionMap([

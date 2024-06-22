@@ -1,4 +1,4 @@
-import str from ".";
+import str from "./index.js";
 
 const BASE2_CHARSET = "01";
 const BASE10_CHARSET = "0123456789";
